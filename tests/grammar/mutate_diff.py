@@ -31,9 +31,9 @@ from parse_lib import build_parser, parse_body  # noqa: E402
 from prelexer import find_heredocs, substitute_splices  # noqa: E402
 from extract_blocks import extract_blocks  # noqa: E402
 
-LMSCRIPT = os.environ.get('LMSCRIPT_BIN', '/tmp/wp33-lmctl/node_modules/.bin/lmscript')
-CPP = os.environ.get('LMCODE_CPP', '/home/mma/repos/lmcode-team/lmcode-cpp')
-SCHEMA = os.environ.get('LMCODE_CONFORMANCE_SCHEMA', str(Path(CPP) / 'conformance/vectors/schema.json'))
+LMSCRIPT = os.environ.get('LMSCRIPT_BIN')
+CPP = os.environ.get('LMCODE_CPP')
+SCHEMA = os.environ.get('LMCODE_CONFORMANCE_SCHEMA')
 
 TOKEN_RE = re.compile(r'''
     "(?:[^"\\\n]|\\.)*"          # string
@@ -130,9 +130,9 @@ def compiler_verdict(body, workdir):
     source = ('program = _lmcode_ schema=' + json.dumps(SCHEMA) + ';\n'
               + body + '\nend _lmcode_\n')
     path = Path(workdir) / 'probe.lms'
-    path.write_text(source)
+    path.write_text(source, encoding="utf8")
     result = subprocess.run([LMSCRIPT, '--check', str(path)], capture_output=True, text=True,
-                            env={'PATH': os.environ['PATH'], 'HOME': workdir}, timeout=60)
+                            env=dict(os.environ, HOME=workdir), encoding='utf8', timeout=60)
     if result.returncode == 0:
         return True, ''
     text = (result.stderr + result.stdout).strip()
@@ -168,22 +168,45 @@ def classify(message, *, return_baseline=False):
 
 
 def main():
+    global LMSCRIPT, CPP, SCHEMA
     ap = argparse.ArgumentParser()
+    ap.add_argument("--compiler", default=LMSCRIPT)
+    ap.add_argument("--cpp-root", default=CPP)
+    ap.add_argument("--schema", default=SCHEMA)
     ap.add_argument('--seed', type=int, default=20261030)
     ap.add_argument('--per-program', type=int, default=6)
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--json', default='')
     args = ap.parse_args()
 
-    cpp = Path(CPP)
+    if not args.compiler or not args.cpp_root:
+        ap.error('set LMSCRIPT_BIN and LMCODE_CPP, or provide --compiler and --cpp-root')
+    if args.per_program < 1 or args.limit < 0:
+        ap.error('--per-program must be positive and --limit nonnegative')
+    LMSCRIPT = args.compiler
+    CPP = args.cpp_root
+    cpp = Path(CPP).resolve()
+    SCHEMA = str(Path(args.schema).resolve()) if args.schema else str(cpp/'conformance/vectors/schema.json')
+    if not Path(SCHEMA).is_file(): ap.error('missing conformance schema: '+SCHEMA)
     seeds = []
     for path in sorted((cpp / 'conformance/vectors').glob('*.dsl')) + sorted((cpp / 'conformance/stdlib-vectors').glob('*.dsl')):
-        seeds.append((path.name, path.read_text()))
+        seeds.append((path.name, path.read_text(encoding='utf8')))
     for path in sorted((cpp / 'sample-suite/programs').glob('*.lms'))[:40]:
-        for n, (_m, body) in enumerate(extract_blocks(path.read_text())):
+        for n, (_m, body) in enumerate(extract_blocks(path.read_text(encoding='utf8'))):
             seeds.append((f'{path.name}#{n}', splice_text(body)))
     if args.limit:
         seeds = seeds[:args.limit]
+
+    if not seeds: ap.error('empty compiler mutation seed set')
+    with tempfile.TemporaryDirectory(prefix='lmcode-diff-baseline-') as workdir:
+        accepted, message = compiler_verdict('let baseline_value = 1;', workdir)
+        if accepted is not True:
+            print('RESULT: FAIL (compiler positive baseline failed): '+message)
+            return 1
+        rejected, message = compiler_verdict('let = ;', workdir)
+        if rejected is not False:
+            print('RESULT: FAIL (compiler negative baseline did not reject): '+message)
+            return 1
 
     with tempfile.TemporaryDirectory(prefix="lmcode-return-capability-") as workdir:
         return_support, return_message = compiler_verdict("$return = 1;", workdir)
@@ -200,6 +223,7 @@ def main():
         for label, mutant in mutants(body, rng, args.per_program):
             worklist.append((name, label, mutant))
 
+    if not worklist: ap.error('empty mutation worklist')
     print(f'{len(seeds)} seed programs, {len(worklist)} mutants')
     agreements = 0
     disagreements = []
@@ -238,6 +262,9 @@ def main():
                                                'programs': len(seeds), 'mutants': len(worklist),
                                                'agreements': agreements, 'outer_failures': outer_failures,
                                                'disagreements': disagreements}, indent=1))
+    if not agreements and not disagreements:
+        print('RESULT: FAIL (no compiler verdicts were compared)')
+        return 1
     print('RESULT: ' + ('FAIL (grammar-review disagreements need fixes or reclassification)' if bugs else 'OK'))
     return 1 if bugs else 0
 

@@ -34,3 +34,13 @@ with tempfile.TemporaryDirectory(prefix='compiler probe ', dir=root) as tmp:
     if data[:6] != b'DSLB\x00\x06':
         raise SystemExit('Compiler did not produce DSLB v6: ' + repr(data[:8]))
     print('PASS published compiler: positive v6 bytecode and negative type-check control')
+
+version = subprocess.run([compiler, '--version'], capture_output=True, timeout=30)
+catalog = subprocess.run([compiler, '--dsl-signatures', str(root/'scripts/ci/examples/probe.schema.json')], capture_output=True, timeout=30)
+if version.returncode or catalog.returncode:
+    raise SystemExit('Compiler version/catalog inspection failed')
+lines = catalog.stdout.splitlines()
+if version.stdout.strip() == b'lmscript 0.2.444':
+    if len(lines) != 181 or any(b'template_render' in line or b'lmcode_return_' in line for line in lines):
+        raise SystemExit('Published 0.2.444 empty-host catalog differs from the documented 181-signature baseline')
+print('PASS inspected compiler catalog:', len(lines), 'implicit signatures')

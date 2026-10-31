@@ -425,7 +425,7 @@ The taxonomy with every code is `spec/language.md` §12; the three failures you 
 
 **Compile errors** are located — `error:FILE:LINE:COL: _lmcode_: MESSAGE` — and exit 2 before
 anything runs. The recursion error in §3 is one; the everyday one is an undefined name (`--check`
-output pinned verbatim, exit 2):
+output abbreviated as noted above, exit 2):
 
 ```text
 program = _lmcode_ cli="lmcode-cpp-sample";

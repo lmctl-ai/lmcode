@@ -6,15 +6,22 @@ on:
   pull_request:
     paths: [spec/grammar.ebnf, spec/grammar.md, tests/grammar/**, .github/workflows/grammar.yml]
   workflow_dispatch:
+    inputs:
+      compiler_version:
+        description: 'Published npm version/tag; blank uses repository variable or pin'
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: grammar-${{ github.ref }}
+  group: grammar-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -39,7 +46,7 @@ jobs:
       - name: Install lark into a private venv
         run: |
           python -m venv .venv-grammar
-          .venv-grammar/bin/pip install --quiet 'lark[interegular]'
+          .venv-grammar/bin/pip install --quiet -r scripts/ci/requirements.txt
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24

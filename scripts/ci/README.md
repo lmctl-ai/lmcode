@@ -18,12 +18,15 @@ can be supplied through LMCODE_CPP/LMCODE_LMOK instead of cloning again:
 ```sh
 git clone https://github.com/lmctl-ai/lmcode-cpp scripts/ci/work/cpp
 git clone https://github.com/lmctl-ai/lmok scripts/ci/work/lmok
+git clone https://github.com/lmctl-ai/lmcode-cpp-sample scripts/ci/work/sample
+make -C scripts/ci/work/sample all
 python3 -m venv scripts/ci/work/python
 source scripts/ci/work/python/bin/activate
 python -m pip install -r scripts/ci/requirements.txt
 source scripts/ci/install-compiler.sh
 export LMCODE_CPP="$PWD/scripts/ci/work/cpp"
 export LMCODE_LMOK="$PWD/scripts/ci/work/lmok"
+export LMCODE_SAMPLE="$PWD/scripts/ci/work/sample"
 bash scripts/ci/run-suite.sh
 ```
 
@@ -76,3 +79,8 @@ ResultSink/sample adoption; the cross-runtime sample audit exposes that gap.
 
 Manual runs use a separate concurrency group, so main edits do not cancel an
 explicit compiler-version experiment or a snapshot verification already in progress.
+
+The tutorial runner extracts its 15 programs and compares the documented stdout,
+exit codes, compile diagnostics and a corrupted schema-hash example against the
+built C++ sample. Only paths and the explicitly abbreviated scope-name inventory
+are normalized. A changed expected-output control must fail.

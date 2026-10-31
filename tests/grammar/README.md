@@ -25,12 +25,13 @@ This directory checks syntax against corpora and the real compiler
   token-level mutation corpus; every disagreement is classified grammar bug (fixed) or
   documented static-semantics difference (spec/grammar.md).
 
-Run locally (Python 3 with `pip install 'lark[interegular]'` in a venv, and the private
-compiler install for the differential):
+Run locally from the repository root with the private Python/compiler setup in
+[scripts/ci](../../scripts/ci/README.md). Paths are explicit; missing or empty
+corpora cannot pass. Set LMCODE_CPP and LMCODE_LMOK (or LMOK), and LMSCRIPT_BIN:
 
 ```sh
-python3 tests/grammar/check_corpus.py
-python3 tests/grammar/mutate_diff.py            # needs LMSCRIPT_BIN or the /tmp prefix
+python3 tests/grammar/check_corpus.py --cpp-root "$LMCODE_CPP" --lmok-root "$LMCODE_LMOK"
+python3 tests/grammar/mutate_diff.py            # requires the explicitly selected compiler
 ```
 
 CI runs the corpus check on every push (`.github/workflows/grammar.yml`); the

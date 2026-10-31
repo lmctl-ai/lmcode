@@ -3,9 +3,13 @@ from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'tests/grammar'))
-from parse_lib import build_parser,parse_body
+from parse_lib import build_parser,parse_body,grammar_source
+from ebnf_to_lark import translate
+from lark import Lark
 
 class CurrentGrammar(unittest.TestCase):
+    def test_strict_lalr_construction(self):
+        Lark(translate(grammar_source()),start="program",parser="lalr",lexer="basic",strict=True)
     def test_return_lowering_now_on_compiler_main(self):
         parser=build_parser()
         for source in ('$return = 1;', '$return = null;', '$ return.name = "value";', '$return["key"] = true;'):
