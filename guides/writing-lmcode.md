@@ -11,10 +11,12 @@ example and cites the specs instead of repeating them:
 - The test corpus every example pattern comes from: `spec/conformance.md` and the sample suite
   (`lmcode-cpp/sample-suite/`, programs `001`–`069`).
 
-**Every lmcode example in this guide was compiled with `lmscript` 0.2.444 and run against the
-`lmcode-cpp-sample` host; the output under each example is pinned verbatim.** Paths in
+**The 13 runnable lmcode examples were compiled with `lmscript` 0.2.444 and run against
+`lmcode-cpp-sample`; their stdout below is pinned verbatim. The two compile-error examples
+are intentional refusal controls.** Paths in
 diagnostics (`/tmp/lmtut/…`) are the scratch directory the examples were verified in — yours will
-differ, everything after the path will not.
+differ. The undefined-name diagnostic below is abbreviated: its scope inventory follows
+the host/catalog; runtime stdout examples are exact.
 
 ## 1. What you need
 
@@ -433,10 +435,12 @@ savedsl(program, ARGV[0]);
 ```
 
 ```text
-error:/tmp/lmtut/undefined-error.lms:2:11: _lmcode_: undefined name 'undeclared_name' (locals are declared with let; the schema provides: shop, ledger, money, fee, sample_tmp, print, assert_close, host_int, host_float, host_float_case, host_bool, host_bytes, host_hex, host_echo_money, host_is_null, host_str_list, host_int_list, host_float_list, host_str_map, host_same, host_null, host_void, host_wrong, host_sum, host_long_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, file_append, file_exists, file_lines, file_read, file_write, float_list, float_map, float_pq, float_queue, float_stack, int_list, int_map, int_pq, int_queue, int_stack, json_parse, math_abs, math_ceil, math_floor, math_max, math_min, math_pow, math_round, math_sqrt, str_contains, str_ends_with, str_find, str_is_float, str_is_int, str_len, str_list, str_lower, str_map, str_match, str_pq, str_queue, str_repeat, str_replace, str_split, str_stack, str_starts_with, str_substr, str_to_float, str_to_int, str_trim, str_upper, str_base64_encode, str_base64_decode, str_hex_encode, str_hex_decode; built-ins: float, str, sin, cos, sqrt, abs, floor, pow, min, max, clamp, lerp, ease, ease_in, ease_out, int)
+error:/tmp/lmtut/undefined-error.lms:2:11: _lmcode_: undefined name 'undeclared_name' (locals are declared with let; the schema provides: …, template_render, …; built-ins: float, str, sin, cos, sqrt, abs, floor, pow, min, max, clamp, lerp, ease, ease_in, ease_out, int)
 ```
 
-Column 11 is where `undeclared_name` starts on line 2; the message enumerates every name in scope.
+Column 11 is where `undeclared_name` starts on line 2. The diagnostic category, location, and
+the `schema provides:`/`built-ins:` sections are stable; the enumerated names (including
+`template_render`) follow the effective host catalog and may change with the host revision.
 
 **Run-time errors** exit 3 with a `RUN_ERROR` (VM-detected) or `RUN_HOST` (host threw) record. A
 computed zero divisor is the classic (output pinned verbatim):
@@ -485,19 +489,17 @@ The practical upshot: any change to the host's schema — even a semantically ne
 the file — invalidates previously compiled bytecode. Recompile after a host upgrade; using `cli=`
 makes that automatic since check and compile always query the current host.
 
-## 7. Planned, not current
+## 7. Current and planned features
 
-> **PLANNED.** The 2026-10-30 consensus design `lmcode-return-and-reverse-templates-consensus.md`
-> adds three things that are **not implemented** in the current compiler and hosts: blocks that
-> yield a value to lmscript through `$return` writes and an `LMCODE_RETURN_BEGIN/END` stdout
-> frame, the `load_schema(...)` descriptor intrinsic, and an executing-block form
-> `_lmcode_ HANDLE [out=EXPR];`. The same consensus retires `savedsl`, `dsl_cli` and the `_dsl_`
-> spelling at the eventual cutover. Do not write programs against these; the design is quoted in
-> `spec/language.md` §2 ("Planned, not current") and `spec/host-protocol.md` §"Planned, not
-> current".
->
-> This tutorial covers exactly the **current 0.2.444 surface**: compile a block, write bytecode
-> with `savedsl`, run it with `host --dsl file.dslb`.
+The published 0.2.444 compiler remains a compile-only surface: `savedsl`, `dsl_cli`, and the
+`_dsl_` spelling are the current compatibility path. On compiler/host main, `$return` lowering,
+reverse extraction, and the C++/lmok sink/frame are landed (slices 3, 5, and 8); sink setup (slice 1) is landed and cross-port adoption
+(slice 2) is in progress. `load_schema(...)` and executing blocks with
+`_lmcode_ HANDLE [out=EXPR];` (slice 4) remain planned. Do not write programs against those
+planned forms until their slice is declared landed.
+
+This tutorial covers exactly the **current 0.2.444 surface**: compile a block, write bytecode
+with `savedsl`, run it with `host --dsl file.dslb`.
 
 ## Where to go next
 

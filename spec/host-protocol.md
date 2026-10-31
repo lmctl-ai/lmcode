@@ -1,13 +1,15 @@
 # Host CLI protocol
 
-Status: current for the flag, result-record and exit-code surface. The terminal return frame
-(`LMCODE_RETURN_BEGIN/END`) at the end of this document is **planned, not implemented** — no
-shipped host or compiler emits or consumes it.
+Status: current for flags, result records, exit codes, and the return sink/frame on hosts that
+have adopted it. Published compiler 0.2.444 still emits opaque compile-only blocks. Mainline
+return lowering/extraction (slices 3, 5, and 8) and the C++/lmok sink/frame are landed; sink
+setup (slice 1) is landed and cross-port adoption (slice 2) remains in progress. Block execution and
+`load_schema` (slice 4) are planned and separate from this contract.
 
 A host is a native program that loads DSLB bytecode and runs it. The compiler never runs programs;
 the host never compiles them. They meet twice: at compile time the host prints its schema (the
 R42 query), and at run time the host executes the bytecode file it is handed and reports on stdout
-with one JSON record per program.
+with a host-defined sequence of trace, result, and (when supported) return-frame records.
 
 Normative sources:
 
@@ -21,8 +23,8 @@ Normative sources:
   `lmok/cpp/main.cpp`. The end-to-end contract is pinned by `lmcode-cpp/sample-suite/CONTRACT.md`
   (see `spec/conformance.md`).
 - Loader error codes and located run errors: `spec/bytecode.md`.
-- Planned return frame: the 2026-10-30 consensus design
-  `lmcode-return-and-reverse-templates-consensus.md` (§"Wire contract", §"Return semantics").
+- Return sink/frame: the normative contract is included below. Hosts retaining the legacy
+  result-only contract must identify that compatibility mode.
 
 ## Flags
 
@@ -33,7 +35,7 @@ hosts set `_O_BINARY` on Windows).
 
 | Invocation | Behavior | Exit |
 |---|---|---|
-| `HOST --dsl FILE [FILE …]` | Load each bytecode file against the embedded schema and registry, then run it. One result record per program (below); a failing program ends the run. | 0, 3 or 4 |
+| `HOST --dsl FILE [FILE …]` | Host-specific arity applies. The C++ sample accepts exactly one file. lmok validates and loads all supplied files before running the first, then stops at the first failure. | 0, 3 or 4 |
 | `HOST --dsl-schema --json` | Print the exact embedded `dsl.schema` JSON bytes and nothing else. This output is what the compiler compiles against and hashes. | 0 |
 | `HOST --dsl-schema` | A human-readable summary. The form is host-chosen: lmok prints its registry's canonical signature list; `lmcode-cpp-sample` prints the same exact schema bytes as `--json`. | 0 |
 | `HOST --dsl-signatures` | Print the registry's canonical signatures, one per line, sorted: `context NAME: Type`, `fn NAME(T1, T2) -> R`, `method Type.name(T1) -> R`. Interfaces are never listed (a registry never implements one, R48). This is the drift check against `lmscript --dsl-signatures SCHEMA`. | 0 |
@@ -42,17 +44,19 @@ hosts set `_O_BINARY` on Windows).
 
 Anything else — no arguments, unknown options, missing values — is a usage error: exit 2 with the
 JSON record `{"ok": false, "phase": "cli", "code": "CLI_USAGE", "message": "usage: …"}` on stdout
-in the SDK-helper style (the sample contract pins that exact shape; lmok prints its longer usage
-text on stderr for its non-DSL subcommands instead — usage handling is host-defined once the
-result-record rule is met for `--dsl` runs).
+in the SDK-helper style where that host uses the helper. lmok prints its longer usage text on
+stderr for missing/invalid `--dsl` arguments and for its non-DSL subcommands; this is a host CLI
+usage path, not a result-record claim.
 
 ## The result record (one JSON line per program)
 
-Every `--dsl` execution prints, on stdout:
+Every `--dsl` execution prints, on stdout, a result record after its trace lines. Return-capable
+hosts append the terminal frame described below, so that frame—not the result record—is the final
+stdout line:
 
 1. the program's **trace lines** first — whatever the host's output functions write (the sample
    hosts' `print(string)`, lmok's `println`), one line each, in execution order; then
-2. exactly one **result record** line plus LF, as the last line:
+2. exactly one **result record** line plus LF (the final protocol line for legacy hosts):
 
 ```json
 {"ok": true, "result": {"balance": 750, "entries": 3, "note": "", "entries_called": 4}}
@@ -68,10 +72,12 @@ Every `--dsl` execution prints, on stdout:
   `LOAD_UNBOUND` (load), `RUN_ERROR`, `RUN_HOST` (run) or `APP_FAIL` (app). A located run error
   (S5) adds numeric `"line"` and, when known, `"column"` fields, and its `message` carries the
   `dsl line N:C: ` prefix. Load errors have no location.
-- The record is the *last* stdout line. The sample suite compares exact stdout bytes and requires
-  an empty stderr for every case (`spec/conformance.md`).
-- With several `--dsl` files the host prints one record per program, in argument order, and stops
-  at the first failure (lmok's behavior; the sample hosts take exactly one file).
+- The record is the last line before any return frame. Legacy hosts without return support make it
+  the last stdout line. The sample suite compares exact stdout bytes and requires an empty stderr
+  for every case (`spec/conformance.md`).
+- With several `--dsl` files, a batching host must document ordering and preloading. lmok loads
+  all files before running the first and then stops at the first failure; the sample hosts accept
+  exactly one file. A missing `--dsl` value is a CLI usage error (lmok prints usage on stderr).
 - The host's own application validation is distinct from a VM failure and runs after it: the
   sample hosts report a negative final ledger balance as `phase: "app"`, `APP_FAIL`, exit 4.
 
@@ -88,15 +94,15 @@ The convention is the SDK's (`report_error` returns 4 for `APP_FAIL`, 3 otherwis
 returns 0) and the R26 allocation: 2 compile / 3 host / 4 application. `spec/bytecode.md` §"Loader
 error codes and result convention" has the code taxonomy.
 
-## Planned, not current: the `LMCODE_RETURN_BEGIN/END` terminal frame
+## Return sink and frame contract
 
-The 2026-10-30 consensus design (`lmcode-return-and-reverse-templates-consensus.md`) adds a way
-for a program to hand a JSON **value** back to lmscript (`$return` writes, lowered to new
-`lmcode_return_*` standard imports). None of this is implemented; the block value stays opaque and
-the chunk returns nothing (`spec/language.md` §2). The wire part, quoted here so hosts can plan
-for it:
+The compiler main line lowers `$return` writes to `lmcode_return_*` imports, and the C++/lmok hosts
+provide the invocation sink and terminal frame. The published 0.2.444 compiler lacks `$return` lowering, but frame behavior is selected by
+the host: lmok emits it even for programs compiled with that release. The C++ sample at
+`be54c73` retains legacy result-only behavior. Block execution and `load_schema`
+remain planned.
 
-- On success a CLI prints its traces and `{"ok", "result"}` record as today, then exactly
+- On success a return-capable CLI prints its traces and `{"ok", "result"}` record as today, then exactly
   `LMCODE_RETURN_BEGIN\n<compact JSON value>\nLMCODE_RETURN_END\n`. The frame is **always**
   printed on success (a `null` payload when the program wrote nothing) and is **terminal**:
   `END` plus LF is the final stdout, marker lines are reserved in preceding stdout, and escaped
@@ -113,5 +119,21 @@ for it:
   `9007199254740993` is a protocol bug), rejects nonfinite and unsafe-integral values, and treats
   underflow of a nonzero token to zero as an error. Duplicate object keys in protocol JSON are
   invalid.
-- The same consensus retires `savedsl`, `dsl_cli` and the `_dsl_` spelling at the eventual
-  cutover; until then nothing in this section changes any current behavior.
+- Sink lifecycle is per logical invocation: bind the sink and reset it once before the body, retain
+  the same root through the selected entry calls, then reset it before the next program. A body
+  and its entries therefore share ownership; an entry does not receive a fresh root. Failed
+  invocations emit no frame and leave no stale value for the next invocation.
+- `lmcode_return_set(value)` owns and replaces the root; `lmcode_return_null()` resets it to null. Field writes
+  (`lmcode_return_put`/`put_null`) require the current root to be null or an object; attempting a
+  field write after a scalar or list root is an error. A typed map is copied as a JSON object
+  and accepts subsequent field writes. Object keys are UTF-8 strings; writing
+  an existing key replaces its value without changing insertion order, while a new key appends.
+  A root field value is copied into the sink, so later VM/arena mutation cannot change the frame.
+- The DSL-facing overloads accept null, bool, string, int, float, `Json`, and the homogeneous
+  `StrList`/`IntList`/`FloatList`/`StrMap`/`IntMap`/`FloatMap` values registered by the host.
+  `Json` may contain recursive JSON arrays/objects; DSL list/map values remain homogeneous and
+  may be empty when constructed with a typed constructor. Mixed/nested structures use `Json`;
+  unsupported opaque objects are rejected by the type checker. Numeric validation follows the rules above. Reverse-template extraction uses the same
+  sink ownership and failure rules.
+- `savedsl`, `dsl_cli`, and the `_dsl_` spelling remain compatibility names until the eventual
+  cutover; this section does not claim block execution or schema loading.

@@ -1,6 +1,6 @@
 # lmcode — language reference
 
-Status: current. This is the reference for people who **write** lmcode source — the language inside
+Status: released compiler 0.2.444 baseline, with mainline return additions explicitly marked. This is the reference for people who **write** lmcode source — the language inside
 `_lmcode_ ... end _lmcode_` blocks. It is not a tutorial, and it does not cover how runtimes load or
 execute the compiled output; the wire format and loader rules live in `spec/bytecode.md`, the test
 contract in `spec/conformance.md`, the schema document format in `spec/schema.md`, the host CLI
@@ -17,8 +17,8 @@ Normative sources:
 - Literals design: `lmscript/durable-memory/design/lmcode-literals.md` (its header still says
   PROPOSED, but the compiler implements it and the sample suite pins it as `lmcode-literals-v1`;
   this document follows the compiler).
-- Standard catalog: `lmcode-cpp/std/lmcode-std.schema.json` (canonical; byte-identical copies are
-  bundled by the compiler and the SDKs) and the generated inventory
+- Standard catalog: `lmcode-cpp/std/lmcode-std.schema.json` (canonical; compiler and SDK byte pins
+  must be compared by revision, see [std.md](std.md#ownership-and-drift-pinning)) and the generated inventory
   `lmscript/durable-memory/lmcode-std-reference.md`.
 - Heredoc rules: `lmscript/durable-memory/requirements/dsl-heredoc.md` (R01–R07).
 
@@ -29,7 +29,8 @@ Where the prose spec and `dsl.ts` disagree, `dsl.ts` wins and the disagreement i
 An lmcode program is **one chunk of statements** that a host program runs as a callback inside a
 context the host hands it. The host owns the process, the objects and their lifetime; the chunk may
 read context objects, call their methods and the host functions, and create local variables. The
-chunk returns nothing: its effects are the calls it makes. The compiler only verifies and compiles
+released 0.2.444 chunk has no lmscript return value: its effects are the calls it makes.
+Mainline slice 3 additionally writes a separate invocation-owned return sink (§2). The compiler only verifies and compiles
 the chunk (R05); a native runtime (`lmcode-cpp`, `-rust`, `-go`, …) executes it. One block compiles
 to one bytecode file (R26).
 
@@ -64,15 +65,24 @@ end _lmcode_
   argv prefix `[absolute program path, WORD...]` of a `cli=` block's host (R43), so a script runs
   exactly the binary its bytecode is bound to.
 
-### Planned, not current
+### Mainline return writes and planned block execution
 
-The following are agreed design (the 2026-10-30 consensus document
-`lmcode-return-and-reverse-templates-consensus.md`) but are **not implemented** and must not be used
-or relied on: blocks yielding a value to lmscript through `$return` / `$return.name` writes, the
-`LMCODE_RETURN_BEGIN/END` stdout frame, the `load_schema(...)` descriptor intrinsic, and the
-executing-block form `_lmcode_ HANDLE [out=EXPR];`. The same consensus retires `savedsl`, `dsl_cli`
-and the `_dsl_` spelling at the eventual cutover. Until then the block value is opaque and the chunk
-returns nothing, exactly as above.
+Compiler mainline slice 3 accepts write-only `$return = expr;`, `$return.name = expr;`,
+and `$return[stringExpr] = expr;`. Root writes replace the owned JSON value; field writes
+require a null/object root and replace or append one top-level key. Reads and nested
+paths are rejected. Values are int, float, bool, string, `Json`, typed string/int/float
+lists or maps, or the special complete RHS `null`. The C++ sink deep-copies values and
+validates JSON numbers/UTF-8. Body and selected entries share the sink.
+
+The C++/lmok sink and terminal frame (slices 1 and 8) and reverse-template extraction
+(slice 5) are landed; cross-port adoption (slice 2) is in progress. These additions are
+absent from the released **0.2.444** compiler used by this tutorial/CI baseline. The public
+[host contract](host-protocol.md#return-sink-and-frame-contract) specifies ownership,
+accepted values, number validation and failure silence.
+
+Executing blocks `_lmcode_ HANDLE [out=EXPR];` and the `load_schema(...)` descriptor API
+(slice 4) remain planned for the supported baseline. `savedsl`, `dsl_cli` and `_dsl_`
+remain the release compatibility path. Return writes do not imply automatic host execution.
 
 ## 3. Lexical rules
 
@@ -442,7 +452,7 @@ standard signature identically is deduplicated; a *different* signature under a 
 located schema error. New method names on standard types are allowed as host extensions. The full
 reference — every signature, semantics and error text — is `spec/std.md`; the groups:
 
-| Group | Contents | Scale (canonical v3) |
+| Group | Contents | Scale (release 0.2.444) |
 |-------|----------|----------------------|
 | string | `str_len`, `str_contains`, `str_find`, `str_replace`, `str_split`, case/trim/prefix/suffix tests, `str_to_int`/`str_to_float` and inverse checks, `str_repeat`, `str_match`, plus `template_render` | 18 signatures |
 | math | `math_abs/ceil/floor/max/min/pow/round/sqrt`, each with int and float overloads | 16 signatures (8 names) |
@@ -452,11 +462,13 @@ reference — every signature, semantics and error text — is `spec/std.md`; th
 | containers | `Int/Float/Str` × `Stack`, `Queue`, `PQ` (priority queue: min priority first, insertion-order ties) | 69 signatures |
 | json | `json_parse(string) -> Json` (strict JSON; the heredoc of §3.7 lowers to it) and the immutable `Json` navigation: `kind/len/at/get/has/keys/as_*`, `to_json` | 12 signatures |
 
-182 canonical signatures in total (the generated inventory in the mono tree pins this count; note
-the lmcode-std-v3 requirements document estimated 181 — the catalog and the generated reference
-agree on 182, and the catalog is authoritative). Standard objects live in a per-run arena with a
-shared 65,536-object limit; `qw`/`qi`/`qf`, `%(...)` and `json` literals all lower to these
-constructors and methods.
+The released 0.2.444 bundle has 182 signatures. C++ main `aaa9088` has **206**,
+including 24 `lmcode_return_*` overloads for the mainline write-only return sink.
+The [generated inventory](std-signatures.md) describes that mainline catalog; see
+[std.md](std.md) for revision/digest differences and return helper semantics. Do not
+assume byte-identical compiler and SDK catalog pins from the shared v3 name.
+Standard objects live in a per-run arena with a shared 65,536-object limit;
+`qw`/`qi`/`qf`, `%(...)` and `json` literals lower to constructors and methods.
 
 Testing helpers (`print`, `assert_close`) are **not** part of the catalog: they stay explicit host
 declarations (lmcode-std R02), which is why the conformance and sample hosts register them
@@ -468,8 +480,14 @@ themselves.
   becomes an lmcode literal before compilation, so the compiler type-checks the result and a splice
   cannot change the program's structure. Strings and bools become their literals; a number becomes
   an int literal when integral within ±2^53 (larger integral values are errors), otherwise an exact
-  `digits.digits` float literal; values needing an exponent, null, lists and maps are errors at the
-  field. lmscript has one number type, so `${3.0}` is the int `3` — write `float(${n})` where a
+  `digits.digits` float literal. Nonempty lists of strings or numbers
+  become `qw`/`qi`/`qf` literals; maps with homogeneous string/int/float values become
+  `%()` literals (an empty map is accepted). Lists/maps are limited to 10,000 elements/entries.
+  Numeric mixtures promote to float when needed; string/number mixtures are rejected.
+  Empty lists, bool or nested collections, null, and numbers requiring an
+  exponent are rejected at the field. String-list words must obey the quote-word restrictions
+  (no whitespace, quotes, parentheses, backslash, comment marker, interpolation/heredoc
+  openers, control characters or invalid surrogate values). lmscript has one number type, so `${3.0}` is the int `3` — write `float(${n})` where a
   float is required.
 - **Check time.** A block whose fields are all literal is fully compiled at `lmctl script --check`;
   a computed `${}` field defers compilation to evaluation. `json` heredoc bodies are validated at

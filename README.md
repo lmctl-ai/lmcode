@@ -27,11 +27,13 @@ conformance contract every runtime must pass.
 
 ## Quickstart
 
+Prerequisites: Node 24+, npm, a C++17 compiler, Make, Python 3 and Git.
+
 ```sh
 npm install --prefix /tmp/lmcode-tools @lmctl-ai/lmctl@0.2.444   # private install, not global
 export PATH="/tmp/lmcode-tools/node_modules/.bin:$PATH"
 git clone https://github.com/lmctl-ai/lmcode-cpp-sample
-cd lmcode-cpp-sample && ./build.sh            # builds the reference host
+cd lmcode-cpp-sample && make            # builds the reference host
 cat > /tmp/hello.lms <<'EOF'
 p = _lmcode_ cli="lmcode-cpp-sample";
 print("hello from lmcode");
@@ -54,8 +56,8 @@ The full walkthrough with pinned outputs is [guides/writing-lmcode.md](guides/wr
 | [spec/grammar.md](spec/grammar.md) + [spec/grammar.ebnf](spec/grammar.ebnf) | Formal grammar (W3C EBNF), machine-checked against the real compiler by [tests/grammar](tests/grammar/README.md) |
 | [spec/schema.md](spec/schema.md) | Host schema format: types, functions, context, enums, conversions, operators, interfaces, the SHA-256 hash binding |
 | [spec/bytecode.md](spec/bytecode.md) | DSLB v6 layout section by section, opcode table with widths and stack effects, entries section, verifier rules, loader errors |
-| [spec/std.md](spec/std.md) + [spec/std-signatures.md](spec/std-signatures.md) | The standard catalog: ownership, byte-pinned locks, version history, and the generated 182-signature list |
-| [spec/host-protocol.md](spec/host-protocol.md) | Host CLI flags, result/diagnostic records, exit codes, the planned `LMCODE_RETURN` frame |
+| [spec/std.md](spec/std.md) + [spec/std-signatures.md](spec/std-signatures.md) | The standard catalog: ownership, byte-pinned locks, version history, and the generated 206-signature mainline list (182 in release 0.2.444) |
+| [spec/host-protocol.md](spec/host-protocol.md) | Host CLI flags, result/diagnostic records, exit codes, the adopted `LMCODE_RETURN` frame and legacy host behavior |
 | [spec/conformance.md](spec/conformance.md) | The conformance corpus and sample-suite: `.expect` protocols, vector counts, how to run them |
 | [guides/implementing-a-runtime.md](guides/implementing-a-runtime.md) | Runtime porting guide: milestones, 15 cited pitfalls, per-language file map |
 | [guides/writing-lmcode.md](guides/writing-lmcode.md) | Author tutorial with verified examples |
@@ -78,11 +80,21 @@ The compiler lives in the lmctl monorepo (`lmscript/dsl.ts`) and ships with
 
 ## Current vs planned
 
-Everything in `spec/` describes the language as implemented by the published compiler
-(0.2.444, DSLB v6), except clearly marked **planned** boxes: the block yielding the
-program's return value, `load_schema`, `$return` and the `LMCODE_RETURN_BEGIN/END` frame,
-and reverse templates are mid-design/implementation and are documented as planned until
-they land on the compiler's main branch.
+The tutorial and compiler CI baseline are **published 0.2.444**, which produces opaque,
+compile-only blocks. Mainline features are identified separately; DSLB v6 and catalog
+name v3 alone do not guarantee a compatible compiler/runtime pair.
+
+| Component / baseline | Return support |
+|---|---|
+| Published `@lmctl-ai/lmctl@0.2.444` | Compile-only blocks; no `$return` lowering or executing-block API |
+| C++ `aaa9088`, lmok `f13cc8f7` mainline | Invocation sink and terminal frame adopted (slices 1 and 8) |
+| Compiler source `aa6fecb5` (slices 3 and 5) | `$return` lowering and reverse-template extraction landed; see [host contract](spec/host-protocol.md#return-sink-and-frame-contract) |
+| Cross-port sink adoption (slice 2) | In progress; check each port's revision rather than assuming parity |
+| Executing blocks, `load_schema`, `out=` (slice 4) | Planned; not part of the released quickstart |
+
+The [standard catalog](spec/std.md) names the 182-signature release and 206-signature
+C++ main catalogs and records their differing byte pins. The grammar includes mainline
+return writes; the release compiler differential covers the shared baseline only.
 
 ## CI and local verification
 
@@ -142,9 +154,11 @@ The grammar of the language itself is specified formally in
 with prose and the static-semantics boundary in [spec/grammar.md](spec/grammar.md). The
 grammar is normative and machine-checked: `tests/grammar/check_corpus.py` translates it to
 a parser generator grammar (Lark) and parses every lmcode body in the conformance vectors,
-stdlib vectors, sample suite and lmok rules with zero failures, and
+stdlib vectors, sample suite and lmok rules (799 bodies, zero failures at C++
+`aaa9088` / lmok `f13cc8f7`, including nine return bodies), and
 `tests/grammar/mutate_diff.py` differentially tests accept/reject against the real compiler
-on a token-mutation corpus. The [grammar workflow](.github/workflows/grammar.yml) runs both
+on a token-mutation corpus. The differential uses released 0.2.444; mainline-only
+return syntax is not evidence of released compiler support. The [grammar workflow](.github/workflows/grammar.yml) runs both
 in CI on changes to the grammar or its checker. The grammar is LALR(1)-clean (Lark strict
 mode), so it doubles as the cross-check source for the tree-sitter grammar.
 
