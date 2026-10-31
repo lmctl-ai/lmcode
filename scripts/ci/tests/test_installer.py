@@ -36,11 +36,19 @@ f=bins/'lmscript'; f.write_text('#!/bin/sh\\necho lmscript 0.2.444\\n'); f.chmod
             self.assertEqual(bad.returncode,2)
             self.assertFalse((temp/'args').exists(), 'invalid selector must not invoke npm')
 
-    def test_probe_rejects_a_v5_compiler(self):
-        with tempfile.TemporaryDirectory(prefix='wrong compiler ') as directory:
+    def test_probe_rejects_a_compiler_without_run_lmcode(self):
+        with tempfile.TemporaryDirectory(prefix='old compiler ') as directory:
             fake = Path(directory)/'compiler'
-            fake.write_text("#!/usr/bin/env python3\nimport pathlib,sys\nsource=pathlib.Path(sys.argv[-2]).read_text()\nif 'wrong type' in source: sys.exit(2)\npathlib.Path(sys.argv[-1]).write_bytes(b'DSLB\\x00\\x05')\n")
+            fake.write_text("""#!/usr/bin/env python3
+import pathlib,sys
+source=pathlib.Path(sys.argv[-1]).read_text()
+if '--check' in sys.argv and 'run_lmcode' in source:
+ print("Call to undefined function 'run_lmcode'",file=sys.stderr); sys.exit(2)
+if 'wrong type' in source: sys.exit(2)
+sys.exit(0)
+""")
             fake.chmod(0o755)
             result = subprocess.run(['python3',str(ROOT/'scripts/ci/probe-compiler.py')],env=dict(os.environ,LMSCRIPT_BIN=str(fake)),capture_output=True)
             self.assertNotEqual(result.returncode,0)
-            self.assertIn(b'did not produce DSLB v6',result.stderr)
+            self.assertIn(b'cannot type-check the lmcode execution probe',result.stderr)
+            self.assertIn(b'run_lmcode',result.stderr)
