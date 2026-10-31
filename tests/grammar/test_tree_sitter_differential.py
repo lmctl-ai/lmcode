@@ -14,6 +14,10 @@ SCRIPT = ROOT / "tests" / "grammar" / "tree_sitter_differential.py"
 
 class DifferentialGateTests(unittest.TestCase):
     def test_rejecting_a_valid_script_in_a_mutated_grammar_fails_the_gate(self):
+        required = ("TREE_SITTER", "LMSCRIPT_BIN", "TREE_SITTER_LMSCRIPT_ROOT", "TREE_SITTER_LMCODE_ROOT")
+        missing = [name for name in required if not os.environ.get(name)]
+        if missing:
+            self.skipTest("S3 control runs in grammar.yml; missing " + ", ".join(missing))
         grammar = Path(os.environ["TREE_SITTER_LMSCRIPT_ROOT"])
         cli = os.environ["TREE_SITTER"]
         with tempfile.TemporaryDirectory(prefix="lmcode-bad-grammar-") as temp:
