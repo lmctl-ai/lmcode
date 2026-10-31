@@ -17,10 +17,16 @@ def validate(value,case):
     assert isinstance(value,dict)and type(value.get('ok'))is bool
     if value['ok']:
         assert case['exit']==0
-        assert set(value)==({'ok','result','parts'}if builder else {'ok','result'})
+        expected={'ok','result','parts'}if builder else {'ok','result'}
+        if case.get('dry'):expected.add('dry')
+        assert set(value)==expected
+        if case.get('dry'):assert value['dry'] is True
         if builder:assert integer(value['parts'])and value['parts']==count and isinstance(value['result'],list)and len(value['result'])==count
     else:
-        assert {'ok','phase','code','message'}<=set(value)<= {'ok','phase','code','message','line','column','part'}
+        allowed={'ok','phase','code','message','line','column','part'}
+        if case.get('dry'):allowed.add('dry')
+        assert {'ok','phase','code','message'}<=set(value)<=allowed
+        if case.get('dry'):assert value['dry'] is True
         assert all(isinstance(value[k],str)for k in ['phase','code','message'])
         assert {'cli':2,'load':3,'run':3,'app':4}.get(value['phase'])==case['exit']
         if 'line'in value:assert integer(value['line'])and value['line']>0
@@ -77,8 +83,8 @@ class InvocationEnvelopes(unittest.TestCase):
     def test_normative_spec_examples(self):
         text=(ROOT/'spec/host-protocol.md').read_text()
         examples=re.findall(r'```text\nLMCODE_RETURN_BEGIN\n([^\n]+)\nLMCODE_RETURN_END\n```',text)
-        self.assertEqual(len(examples),3)
-        cases=[{'mode':'single','programs':['a'],'exit':0},{'mode':'builder','programs':['a','b'],'exit':0},{'mode':'builder','programs':['a','b'],'exit':3}]
+        self.assertEqual(len(examples),4)
+        cases=[{'mode':'single','programs':['a'],'exit':0},{'mode':'builder','programs':['a','b'],'exit':0},{'mode':'builder','programs':['a','b'],'exit':3},{'mode':'single','programs':['a'],'exit':0,'dry':True}]
         for raw,case in zip(examples,cases):validate(json.loads(raw),case)
     def test_wrong_count_partial_payload_and_bare_value_controls(self):
         builder={'mode':'builder','programs':['a'],'exit':0}
