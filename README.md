@@ -41,7 +41,7 @@ end _lmcode_
 savedsl(p, "/tmp/hello.dslb");
 EOF
 export PATH="$PWD/build:$PATH"
-lmscript /tmp/hello.lms && ./build/lmcode-cpp-sample --dsl /tmp/hello.dslb
+lmscript /tmp/hello.lms && ./build/lmcode-cpp-sample --lmcode /tmp/hello.dslb
 # prints: hello from lmcode
 # then:   {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
 #         LMCODE_RETURN_BEGIN
@@ -83,8 +83,9 @@ The compiler lives in the lmctl monorepo (`lmscript/dsl.ts`) and ships with
 
 ## Current vs planned
 
-The tutorial and compiler CI baseline are **published 0.2.444**, which produces opaque,
-compile-only blocks. Mainline features are identified separately; DSLB v6 and catalog
+The tutorial is verified with **mono main 7a1829a1** and the renamed hosts.
+The older CI compiler default **0.2.444** must be overridden with a release containing
+the flag cutover when one is available; it cannot drive these hosts. Mainline features are identified separately; DSLB v6 and catalog
 name v3 alone do not guarantee a compatible compiler/runtime pair.
 
 | Component / baseline | Return support |
@@ -92,8 +93,8 @@ name v3 alone do not guarantee a compatible compiler/runtime pair.
 | Published `@lmctl-ai/lmctl@0.2.444` | Compile-only blocks; no `$return` lowering or executing-block API |
 | C++ `aaa9088`, lmok `f13cc8f7` mainline | Invocation sink and terminal frame adopted (slices 1 and 8) |
 | Compiler source `aa6fecb5` (slices 3 and 5) | `$return` lowering and reverse-template extraction landed; see [host contract](spec/host-protocol.md#return-sink-and-frame-contract) |
-| Cross-port sink adoption (slice 2) | In progress; check each port's revision rather than assuming parity |
-| Executing blocks, `load_schema`, `out=` (slice 4) | Landed in mono main (`0bc80277`); not in released 0.2.444; needs a frame-emitting host (C++ SDK main: yes, verified; samples: pending slice 6) |
+| Cross-port sink adoption (slice 2) | Landed in all five runtimes; all eight samples emit the frame |
+| Executing blocks, `load_schema`, `out=` (slice 4) | Landed in mono main (`0bc80277`); not in released 0.2.444; needs a frame-emitting host (C++ SDK main: yes, verified; samples: adopted) |
 
 The [standard catalog](spec/std.md) names the 181-signature release and 206-signature
 C++ main catalogs and records their differing byte pins. The grammar includes mainline
@@ -127,4 +128,4 @@ incompatibilities without skipping them. Publication is not part of these workfl
 
 ## Historical literal names
 
-The documentation calls the language lmcode. `--dsl`, `--dsl-schema` and `--dsl-signatures` are current host flag literals; `DSLB` is the bytecode magic and `DSLB v6` is the current format name; `.dslb` is the current bytecode filename extension; `_dsl_` is the historical block spelling; `dsl.schema` is the current schema JSON key. Other code-formatted API names, paths, manifest names and diagnostic text retain their current literal spellings.
+The documentation calls the language lmcode. `--lmcode`, `--lmcode-schema` and `--lmcode-signatures` are current host flag literals; `DSLB` is the bytecode magic and `DSLB v6` is the current format name; `.dslb` is the current bytecode filename extension; `_dsl_` is the historical block spelling; `dsl.schema` is the current schema JSON key. Other code-formatted API names, paths, manifest names and diagnostic text retain their current literal spellings.

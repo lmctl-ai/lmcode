@@ -139,10 +139,10 @@ naming the interface and parameter.
 A top-level `@NAME fn … implements NAME` rule binds to one of these; the function's signature must
 match the interface exactly, with no conversions (see `spec/language.md` §8). Interfaces are
 compiler-facing metadata: they appear in **no canonical signature, no import and no bytecode
-section** — a host registry never implements one, so `--dsl-signatures` never lists one — but
+section** — a host registry never implements one, so `--lmcode-signatures` never lists one — but
 being schema bytes they join the SHA-256 binding (below), so adding an interface invalidates
 previously compiled bytecode (accepted: no compatibility promise, R48). The compiler's inspection
-views therefore show them: `lmscript --dsl-schema SCHEMA` (no `--json`) prints
+views therefore show them: `lmscript --lmcode-schema SCHEMA` (no `--json`) prints
 `interface NAME(n: Type, …) -> R` lines after the signatures, and the `--json` document carries an
 `interfaces` key (`{NAME: {params: [{name, type}…], returns}}`). On the wire an entry's interface
 constant is the canonical text `interface NAME(T1, …) -> R` — parameter names are never
@@ -196,7 +196,7 @@ An `_lmcode_` block names its schema in exactly one of two ways (`schema=` and `
 exclusive; one is required):
 
 - `schema="FILE"` — a schema file resolved like an import and read at check time.
-- `cli="PROGRAM [WORD…]"` — the schema is what `PROGRAM WORD… --dsl-schema --json` prints, byte
+- `cli="PROGRAM [WORD…]"` — the schema is what `PROGRAM WORD… --lmcode-schema --json` prints, byte
   for byte. The words are fixed subcommands of a multi-schema host (`cli="lmor cpsat"`); each must
   match `[A-Za-z0-9._-]+` (no quoting, no shell). A bare program name is searched on `PATH`
   (absolute entries only); a name with a path separator resolves like an import. The query runs in
@@ -220,16 +220,16 @@ exclusive; one is required):
 
 ## Inspection commands (compiler side)
 
-`lmscript --dsl-signatures SCHEMA [--without-std]` prints the sorted canonical signatures of the
+`lmscript --lmcode-signatures SCHEMA [--without-std]` prints the sorted canonical signatures of the
 **effective** schema, one per line: `context NAME: Type`, `fn NAME(T1, T2) -> R`,
-`method Type.name(T1) -> R`. `lmscript --dsl-schema SCHEMA [--without-std] [--json]` prints a
+`method Type.name(T1) -> R`. `lmscript --lmcode-schema SCHEMA [--without-std] [--json]` prints a
 human summary (the same signature lines, then the `interface NAME(n: Type) -> R` lines) or, with
 `--json`, a normalized schema document (`dslSchemaDocument` in `dsl.ts`: sorted keys, `self`
 expanded to the owner type, omitted `returns` materialized as `void`; the document is an
 inspection view, never the hashed bytes). `--without-std` filters the canonical standard
 signatures out of either view, even when the source file declares them explicitly; host extensions
 remain, and an emptied standard type disappears from the summary. Repeated or unknown options,
-extra paths, or `--json` on `--dsl-signatures` are usage errors, exit 2. A host test diffs its
+extra paths, or `--json` on `--lmcode-signatures` are usage errors, exit 2. A host test diffs its
 registry's `signatures()` against this output; the sample suite's `protocol.py` derives the
 expected list independently from the schema, so a missing or extra registration fails even when no
 program calls it (see `spec/conformance.md`).

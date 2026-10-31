@@ -48,7 +48,7 @@ sign — `-0.5` is one constant.
 `program = _lmcode_ schema="file.dsl.json";`, body lines, then `end _lmcode_` at column 1
 (spelling must match the opener; `_dsl_` aliases `_lmcode_`). The schema option is
 required and literal; `cli="PROGRAM [WORD...]"` reads the schema from the program itself
-(`PROGRAM WORD... --dsl-schema --json`) and is mutually exclusive with `schema=`;
+(`PROGRAM WORD... --lmcode-schema --json`) and is mutually exclusive with `schema=`;
 `install="github:OWNER/REPO@TAG"` (only with a bare `cli` name) pins where a missing host
 binary is fetched from. `load_schema` does not exist at lmctl 0.2.444 — the header forms
 are exactly `schema=`, `cli=`, `install=`. `${ }` fields are pre-process substitutions of

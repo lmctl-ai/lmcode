@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='compiler probe ', dir=root) as tmp:
     print('PASS published compiler: positive v6 bytecode and negative type-check control')
 
 version = subprocess.run([compiler, '--version'], capture_output=True, timeout=30)
-catalog = subprocess.run([compiler, '--dsl-signatures', str(root/'scripts/ci/examples/probe.schema.json')], capture_output=True, timeout=30)
+catalog = subprocess.run([compiler, '--lmcode-signatures', str(root/'scripts/ci/examples/probe.schema.json')], capture_output=True, timeout=30)
 if version.returncode or catalog.returncode:
     raise SystemExit('Compiler version/catalog inspection failed')
 lines = catalog.stdout.splitlines()

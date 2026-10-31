@@ -1,6 +1,6 @@
 # Writing lmcode programs — a tutorial
 
-Status: current for compiler `@lmctl-ai/lmctl` **0.2.444** using lmcode bytecode (DSLB v6) and the `lmcode-cpp-sample`
+Status: verified with compiler mono main **7a1829a1** using lmcode bytecode (DSLB v6) and the `lmcode-cpp-sample`
 reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
 example and cites the specs instead of repeating them:
 
@@ -11,7 +11,7 @@ example and cites the specs instead of repeating them:
 - The test corpus every example pattern comes from: `spec/conformance.md` and the sample suite
   (`lmcode-cpp/sample-suite/`, programs `001`–`069`).
 
-**The 13 runnable lmcode examples were compiled with `lmscript` 0.2.444 and run against
+**The 13 runnable lmcode examples were compiled with the mainline `lmscript` compiler and run against
 `lmcode-cpp-sample`; their stdout below is pinned verbatim. The two compile-error examples
 are intentional refusal controls.** Paths in
 diagnostics (`/tmp/lmtut/…`) are the scratch directory the examples were verified in — yours will
@@ -25,16 +25,11 @@ chunk of statements that a host program runs as a callback inside a context the 
 (`spec/language.md` §1). The compiler turns your source into a `.dslb` bytecode file; the host
 loads and executes that file. The two never swap jobs.
 
-**The compiler** ships as the npm package `@lmctl-ai/lmctl` (Node 24 required). Install it into a
-prefix and put its `bin` on your PATH:
-
-```sh
-npm install --prefix ~/.local/lmctl @lmctl-ai/lmctl@0.2.444
-export PATH="$HOME/.local/lmctl/node_modules/.bin:$PATH"
-```
-
-That gives you the `lmscript` binary, which compiles `_lmcode_` blocks (this tutorial's examples
-were verified with exactly this install, in a different prefix).
+**The compiler** ships as `@lmctl-ai/lmctl` (Node 24 required). This flag cutover
+requires a compiler containing mono commits `4ccaaa08` and `78cf173b`; use a local
+mainline build until a release containing them is available. Set `LMSCRIPT_BIN`
+to that build's `lmscript/bin/lmscript` and put its directory on PATH for the
+commands below. The older 0.2.444 installation cannot use the renamed host flags.
 
 **The reference host** is `lmcode-cpp-sample`, a small shop application (C++17, Make, Python 3 —
 nothing else). Clone it and build:
@@ -48,8 +43,8 @@ export PATH="$PWD/build:$PATH"
 Sanity check — every lmcode host answers these flags (`spec/host-protocol.md` §"Flags"):
 
 ```sh
-lmcode-cpp-sample --dsl-schema --json   # the exact schema bytes the compiler compiles against
-lmcode-cpp-sample --dsl-signatures      # every callable signature, one per line
+lmcode-cpp-sample --lmcode-schema --json   # the exact schema bytes the compiler compiles against
+lmcode-cpp-sample --lmcode-signatures      # every callable signature, one per line
 ```
 
 ## 2. Your first program
@@ -66,7 +61,7 @@ savedsl(program, ARGV[0]);
 ```
 
 - `cli="lmcode-cpp-sample"` tells the compiler to ask the host binary on your PATH for its schema
-  (the `--dsl-schema --json` query, R42 in `spec/schema.md`), so the program is always compiled
+  (the `--lmcode-schema --json` query, R42 in `spec/schema.md`), so the program is always compiled
   against the exact host that will run it.
 - `print` and the context objects below are declared by the host's schema; `str` is a language
   built-in (`spec/language.md` §4).
@@ -83,7 +78,7 @@ lmscript hello.lms hello.dslb     # writes hello.dslb
 Run it through the host:
 
 ```sh
-lmcode-cpp-sample --dsl hello.dslb
+lmcode-cpp-sample --lmcode hello.dslb
 ```
 
 Output — pinned verbatim:
@@ -525,15 +520,12 @@ makes that automatic since check and compile always query the current host.
 
 ## 7. Current and planned features
 
-The published 0.2.444 compiler remains a compile-only surface: `savedsl`, `dsl_cli`, and the
-`_dsl_` spelling are the current compatibility path. On compiler/host main, `$return` lowering,
-reverse extraction, and the C++/lmok sink/frame are landed (slices 3, 5, and 8); sink setup (slice 1) is landed and cross-port adoption
-(slice 2) is in progress. `load_schema(...)` and executing blocks with
-`_lmcode_ HANDLE [out=EXPR];` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6). Do not write programs against
-those forms with the released 0.2.444 compiler this tutorial pins.
-
-This tutorial covers exactly the **current 0.2.444 surface**: compile a block, write bytecode
-with `savedsl`, run it with `host --dsl file.dslb`.
+The examples use the compile-only inline form still available on the verified
+compiler, followed by explicit host execution with the renamed flag. Mainline
+also supports `$return`, reverse extraction, `load_schema`, executable descriptor
+blocks and explicit `out=` compilation. All eight sample hosts now emit the
+terminal return frame. Earlier published compilers cannot be paired with the
+renamed host options: there is no alias or automatic fallback.
 
 ## Where to go next
 

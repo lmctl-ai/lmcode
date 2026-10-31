@@ -221,8 +221,8 @@ The host runs each case in a fresh process against contexts `shop` and `ledger`:
   `sample schema mismatch`, LOAD_UNBOUND → `sample import mismatch`. VM/host run errors retain the
   SDK message, including the `dsl line N:C: ` prefix.
 - CLI: `--version` prints `lmcode-cpp-sample 0.2.0` (other ports use their own binary name);
-  `--dsl-schema [--json]` prints the exact schema bytes; `--dsl-signatures` prints sorted
-  canonical signatures; `--dsl FILE` runs a case; usage errors exit 2 with phase `cli`, code
+  `--lmcode-schema [--json]` prints the exact schema bytes; `--lmcode-signatures` prints sorted
+  canonical signatures; `--lmcode FILE` runs a case; usage errors exit 2 with phase `cli`, code
   `CLI_USAGE`.
 
 ### Mutation and compile-error pins

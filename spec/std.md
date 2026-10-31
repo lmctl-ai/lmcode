@@ -23,10 +23,10 @@ Normative sources:
 Where the prose documents and the canonical schema disagree, the schema wins; known disagreements
 are listed at the end.
 
-The 181 release count is verified by running `lmscript --dsl-signatures` on an
+The 181 release count is verified by running `lmscript --lmcode-signatures` on an
 empty host schema; host-provided declarations must not be counted as bundled std.
 
-The release count is measured with `lmscript --dsl-signatures` on an empty host
+The release count is measured with `lmscript --lmcode-signatures` on an empty host
 schema, so host-declared extensions are not mistaken for bundled std.
 
 ## Ownership and drift pinning

@@ -58,14 +58,14 @@ with tempfile.TemporaryDirectory(prefix='tutorial ',dir=ROOT) as directory:
             if first_binary is None: first_binary=binary
             record=json.loads(next(line for line in expected.splitlines() if line.startswith('{"ok":')))
             code=0 if record.get('ok') else (4 if record.get('phase')=='app' else 3)
-            run=subprocess.run([str(host),'--dsl',str(binary)],env=env,capture_output=True,timeout=30)
+            run=subprocess.run([str(host),'--lmcode',str(binary)],env=env,capture_output=True,timeout=30)
             if (run.returncode,run.stdout,run.stderr)!=(code,(expected+'\n').encode('utf8'),b''):
                 raise SystemExit('Tutorial case '+str(case)+' output mismatch: '+repr(run))
         print('PASS tutorial case',case)
     if args.case is None:
         data=bytearray(first_binary.read_bytes());data[6]^=1
         corrupt=work/'schema-mismatch.dslb';corrupt.write_bytes(data)
-        result=subprocess.run([str(host),'--dsl',str(corrupt)],env=env,capture_output=True,timeout=30)
+        result=subprocess.run([str(host),'--lmcode',str(corrupt)],env=env,capture_output=True,timeout=30)
         if (result.returncode,result.stdout,result.stderr)!=(3,(blocks[30].strip()+'\n').encode('utf8'),b''):
             raise SystemExit('Tutorial schema-mismatch example differs: '+repr(result))
         print('PASS 15 tutorial programs and the schema-hash mismatch example')

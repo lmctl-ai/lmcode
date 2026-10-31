@@ -29,7 +29,7 @@ source, remains a hard failure.
 3. **`external-schema`** — a `cli=` block cannot obtain its host schema because
    that host binary is not part of the grammar check environment. The source
    still participates in Tree-sitter parsing. For lmok rules, the gate prepends
-   a tiny `lmok --dsl-schema --json` shim that prints the checked-in
+   a tiny `lmok --lmcode-schema --json` shim that prints the checked-in
    `schema/lmok.host.json`; it does not run lmok or evaluate a rule. The
    `c-cross-file` fixture uses `install=...@latest`, which check mode refuses
    to fetch when that release is not cached.

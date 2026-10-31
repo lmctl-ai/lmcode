@@ -92,7 +92,7 @@ per-run arena with a 65,536-object budget (P7). One catalog group per milestone-
 `template_render` is registered by all five ports at the named revisions in
 [std.md](../spec/std.md#template_render-status); verify a new port independently.
 
-Done: `--dsl-signatures`-equivalent output matches `lmscript --dsl-signatures` on the merged
+Done: `--lmcode-signatures`-equivalent output matches `lmscript --lmcode-signatures` on the merged
 schema; the std.lock digest verifies.
 
 Gate: 268/268 stdlib vectors, including the `runtime_error_exact` (full message after stripping
@@ -133,9 +133,9 @@ first, and `call-body-trace` pins it).
 
 ### 7. The CLI protocol
 
-Implement the flags and result records of `spec/host-protocol.md`: `--dsl FILE`, `--dsl-schema
+Implement the flags and result records of `spec/host-protocol.md`: `--lmcode FILE`, `--lmcode-schema
 [--json]` (only the `--json` form promises the exact embedded schema bytes; the bare summary is
-host-chosen), `--dsl-signatures` (sorted canonical signatures,
+host-chosen), `--lmcode-signatures` (sorted canonical signatures,
 never interfaces), `--version`; usage errors exit 2 (the sample uses `CLI_USAGE` JSON; lmok
 uses stderr usage). Legacy hosts finish with the result record; return-capable hosts append
 the terminal return frame after successful dispatch and application validation. Exit codes are 0/2/3/4. stdout is LF bytes on every

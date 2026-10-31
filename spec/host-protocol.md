@@ -1,11 +1,12 @@
 # Host CLI protocol
 
-Status: current for flags, result records, exit codes, and the return sink/frame on hosts that
-have adopted it. Published compiler 0.2.444 still emits opaque compile-only blocks. Mainline
-return lowering/extraction (slices 3, 5, and 8) and the C++/lmok sink/frame are landed; sink
-setup (slice 1) is landed and cross-port adoption (slice 2) remains in progress. Block execution and
-`load_schema` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6); the frame contract below is what an
-executing block parses.
+Status: the host option family is current as of 2026-10-31. Compiler mono main
+`7a1829a1` and the five SDKs/eight samples use the renamed flags below with no
+aliases or fallback. DSLB magic and internal `.dslb` filenames are unchanged.
+Use a compiler built from that mainline or a later release containing the rename;
+older published compilers such as 0.2.444 cannot discover or execute these hosts.
+The five SDKs provide invocation sinks and the eight samples emit terminal frames.
+`load_schema` and executing blocks landed at mono `0bc80277`.
 
 A host is a native program that loads lmcode bytecode (`DSLB` magic) and runs it. The compiler never runs programs;
 the host never compiles them. They meet twice: at compile time the host prints its schema (the
@@ -29,29 +30,32 @@ Normative sources:
 
 ## Flags
 
+The previous flag family is rejected as unknown input before file loading or
+network effects. There are no compatibility aliases.
+
 Every lmcode host CLI offers these flags. A host with several schemas exposes one subcommand per
-schema and every lmcode flag sits after it: `lmor cpsat --dsl F`, `lmor cpsat --dsl-schema --json`
+schema and every lmcode flag sits after it: `lmor cpsat --lmcode F`, `lmor cpsat --lmcode-schema --json`
 (R42). stdout is the protocol channel and is written as LF bytes on every platform (the sample
 hosts set `_O_BINARY` on Windows).
 
 | Invocation | Behavior | Exit |
 |---|---|---|
-| `HOST --dsl FILE [FILE …]` | Host-specific arity applies. The C++ sample accepts exactly one file. lmok validates and loads all supplied files before running the first, then stops at the first failure. | 0, 3 or 4 |
-| `HOST --dsl-schema --json` | Print the exact embedded `dsl.schema` JSON bytes and nothing else. This output is what the compiler compiles against and hashes. | 0 |
-| `HOST --dsl-schema` | A human-readable summary. The form is host-chosen: lmok prints its registry's canonical signature list; `lmcode-cpp-sample` prints the same exact schema bytes as `--json`. | 0 |
-| `HOST --dsl-signatures` | Print the registry's canonical signatures, one per line, sorted: `context NAME: Type`, `fn NAME(T1, T2) -> R`, `method Type.name(T1) -> R`. Interfaces are never listed (a registry never implements one, R48). This is the drift check against `lmscript --dsl-signatures SCHEMA`. | 0 |
+| `HOST --lmcode FILE [FILE …]` | Host-specific arity applies. The C++ sample accepts exactly one file. lmok validates and loads all supplied files before running the first, then stops at the first failure. | 0, 3 or 4 |
+| `HOST --lmcode-schema --json` | Print the exact embedded `dsl.schema` JSON bytes and nothing else. This output is what the compiler compiles against and hashes. | 0 |
+| `HOST --lmcode-schema` | A human-readable summary. The form is host-chosen: lmok prints its registry's canonical signature list; `lmcode-cpp-sample` prints the same exact schema bytes as `--json`. | 0 |
+| `HOST --lmcode-signatures` | Print the registry's canonical signatures, one per line, sorted: `context NAME: Type`, `fn NAME(T1, T2) -> R`, `method Type.name(T1) -> R`. Interfaces are never listed (a registry never implements one, R48). This is the drift check against `lmscript --lmcode-signatures SCHEMA`. | 0 |
 | `HOST --version` | Print the release version as the first stdout line with exactly one `MAJOR.MINOR.PATCH[-PRE][+BUILD]` token (`lmcode-cpp-sample 0.2.0`); `v0.3.0` and `0.3.0` are the same version, a `+BUILD` suffix is ignored (R45). Required of any host installed with `install=…@latest`, recommended for every host. | 0 |
 | `HOST --notices` | Print the embedded third-party license notices (lmok ships `notices_embedded.hpp` for this). Observed in lmok; **not** part of the R42 flag standard and absent from the sample hosts — treat it as a convention for published binaries, not a conformance requirement. | 0 |
 
 Anything else — no arguments, unknown options, missing values — is a usage error: exit 2 with the
 JSON record `{"ok": false, "phase": "cli", "code": "CLI_USAGE", "message": "usage: …"}` on stdout
 in the SDK-helper style where that host uses the helper. lmok prints its longer usage text on
-stderr for missing/invalid `--dsl` arguments and for its non-lmcode subcommands; this is a host CLI
+stderr for missing/invalid `--lmcode` arguments and for its non-lmcode subcommands; this is a host CLI
 usage path, not a result-record claim.
 
 ## The result record (one JSON line per program)
 
-Every `--dsl` execution prints, on stdout, a result record after its trace lines. Return-capable
+Every `--lmcode` execution prints, on stdout, a result record after its trace lines. Return-capable
 hosts append the terminal frame described below, so that frame—not the result record—is the final
 stdout line:
 
@@ -76,9 +80,9 @@ stdout line:
 - The record is the last line before any return frame. Legacy hosts without return support make it
   the last stdout line. The sample suite compares exact stdout bytes and requires an empty stderr
   for every case (`spec/conformance.md`).
-- With several `--dsl` files, a batching host must document ordering and preloading. lmok loads
+- With several `--lmcode` files, a batching host must document ordering and preloading. lmok loads
   all files before running the first and then stops at the first failure; the sample hosts accept
-  exactly one file. A missing `--dsl` value is a CLI usage error (lmok prints usage on stderr).
+  exactly one file. A missing `--lmcode` value is a CLI usage error (lmok prints usage on stderr).
 - The host's own application validation is distinct from a VM failure and runs after it: the
   sample hosts report a negative final ledger balance as `phase: "app"`, `APP_FAIL`, exit 4.
 
@@ -86,7 +90,7 @@ stdout line:
 
 | Code | Meaning |
 |---|---|
-| 0 | Success (`--dsl` run completed; every inspection flag answered). |
+| 0 | Success (`--lmcode` run completed; every inspection flag answered). |
 | 2 | The caller's fault: a compile error in lmscript (the compiler owns this code; hosts never see the source), or a host CLI usage error (`phase` `cli`, `CLI_USAGE`). |
 | 3 | Host load or run failure: the record's `phase` is `load` or `run`. |
 | 4 | Application failure after VM success: `phase` `app`, `APP_FAIL`. |

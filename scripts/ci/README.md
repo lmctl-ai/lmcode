@@ -8,7 +8,10 @@ The compiler selector is the manual workflow input compiler_version, then the
 repository variable LMCODE_COMPILER_VERSION, then scripts/ci/compiler-version
 (currently 0.2.444, the published v6 baseline). To test a newer release or tag,
 run the ci workflow manually and set compiler_version, for example staging.
-A compiler that cannot satisfy the suite fails visibly; planned language
+The default 0.2.444 predates the host flag rename and will now fail visibly.
+For local checks, set `LMSCRIPT_BIN` to a built mono-main compiler; for Actions,
+select a published version containing commits `4ccaaa08`/`78cf173b` when available.
+No fallback to retired flags is attempted. A compiler that cannot satisfy the suite fails visibly; planned language
 features must not be claimed as passing through skipped checks.
 
 Run from the repository root with Node 24, npm, Git and Python 3 (Unix example;

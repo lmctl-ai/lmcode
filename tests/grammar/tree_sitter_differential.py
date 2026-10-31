@@ -404,7 +404,7 @@ def main() -> int:
             shim_dir = scratch / "bin"
             shim_dir.mkdir()
             shim = shim_dir / "lmok"
-            shim.write_text("#!/usr/bin/env python3\nimport pathlib,sys\nif sys.argv[1:] == ['--dsl-schema','--json']:\n sys.stdout.write(pathlib.Path(" + repr(str(lmok_schema)) + ").read_text())\nelse:\n sys.exit(2)\n")
+            shim.write_text("#!/usr/bin/env python3\nimport pathlib,sys\nif sys.argv[1:] == ['--lmcode-schema','--json']:\n sys.stdout.write(pathlib.Path(" + repr(str(lmok_schema)) + ").read_text())\nelse:\n sys.exit(2)\n")
             shim.chmod(0o755)
             env["PATH"] = str(shim_dir) + os.pathsep + env.get("PATH", "")
         counts = {"documents": len(documents), "mutated": sum(doc.mutated for doc in documents),

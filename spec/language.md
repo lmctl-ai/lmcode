@@ -51,7 +51,7 @@ end _lmcode_
 
 - The opener line is `NAME = _lmcode_ OPTIONS;` — the `;` is mandatory. Options are string-literal
   `key=value` pairs. Exactly one of `schema="FILE"` (a schema file, resolved like an import) or
-  `cli="PROGRAM [WORD...]"` (R42: the schema is what `PROGRAM WORD... --dsl-schema --json` prints;
+  `cli="PROGRAM [WORD...]"` (R42: the schema is what `PROGRAM WORD... --lmcode-schema --json` prints;
   the words are fixed subcommands of a multi-schema host) is required. `install="github:OWNER/REPO@TAG"`
   (R43) may accompany a `cli=` with a bare program name: a program missing from PATH is downloaded
   from that pinned release, checksum-verified, into the tool cache.
