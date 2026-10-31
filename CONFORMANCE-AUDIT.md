@@ -7,7 +7,7 @@ not a new copy or a migration of canonical test data.
 | --- | --- | --- |
 | Core DSLB v6: 406 vectors (82 compiler C01 plus 324 boundary/rejection cases) | [C++ reference corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/vectors) | execution traces, rule entries, located runtime failures, malformed container/operand/loop refusal |
 | Standard library: 268 vectors | [C++ standard corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/stdlib-vectors) | catalog operations and selected value/error partitions |
-| Native host integration: 114 cases (77 exit 0, 36 exit 3, 1 exit 4) | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
+| Native host integration: 114 cases (77 exit 0, 36 exit 3, 1 exit 4) + 23 compiler rejects | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
 | Compiler/checker and outer-language behavior | [mono DSL tests](https://github.com/lmctlhq/lmctl-mono/tree/main/lmscript/tests) | typing/schema rejection, splices/deferred checking, source mapping and check/dry-run behavior |
 
 The core generator remains [in mono](https://github.com/lmctlhq/lmctl-mono/blob/main/lmscript/scripts/generate-dsl-conformance.ts).
@@ -58,3 +58,18 @@ baseline and are not certified by this extension. Outer-language reverse
 templating is separate from DSLB instruction conformance. No new bytecode version,
 return protocol, schema format, canonical repository move or compatibility layer
 is introduced by this audit.
+
+## Optional result observations in conformance/3
+
+A trailing .expect record beginning with sink contains a JSON object whose json
+and frame members are strings. Parse that record before unescaping ordinary trace
+lines. Compare the exact owned sink JSON after the body and selected entry; partial
+writes remain observable when execution fails. Compare frame bytes independently:
+only successful completion of both phases permits the terminal frame. Failed
+invocations require an empty frame. Bind one fresh invocation sink before the body;
+retain it across entry calls and keep it out of per-region arenas.
+
+The nine return cases catch missing writes, lost body state, misplaced error
+locations, discarded partial state and frames emitted before entry completion.
+The entry's HALT return value is separate from the invocation sink. This extends
+test observations without changing DSLB v6 or relocating the canonical corpus.
