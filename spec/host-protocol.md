@@ -95,8 +95,19 @@ The 24 existing `lmcode_return_*` signatures remain unchanged. Writes do not exi
 the program or replace entry HALT values. Values are deep owned copies, independent
 of source mutation and VM arenas. Existing strict UTF-8, cycle/handle refusal, safe
 integer/raw-token checks, finite numbers, nonzero-underflow refusal and negative
-zero normalization remain in force. Binary64 uses shortest-round-trip output;
-`0.1 + 0.2` is **0.30000000000000004**, not a legacy precision-limited display value.
+zero normalization remain in force. Binary64 uses the closest shortest-round-trip
+decimal (ties to even), formatted
+like C++ `to_chars(general)`: fixed notation for decimal exponents -4 through 5,
+scientific notation otherwise, lowercase `e`, explicit exponent sign and at least
+two exponent digits. Negative zero is `0`; no redundant `.0` is emitted.
+Strings use `\b`, `\f`, `\n`, `\r`, `\t`, `\"` and `\\`; remaining control
+characters use lowercase `\u00xx`. Unicode text remains UTF-8.
+Malformed invocation metadata uses the reference byte-parser diagnostic (including
+byte offsets) and result-number validation preserves JSON pointer paths.
+The mirrored [boundary fixtures](../tests/fixtures/invocation-boundaries/) pin
+full success and failure frame bytes; refresh them with
+`scripts/sync-invocation-boundaries.py` and `LMCODE_CPP` set to the reference.
+For example, `0.1 + 0.2` is **0.30000000000000004**, not a legacy precision-limited display value.
 
 ## Per-slot native lifecycle
 
