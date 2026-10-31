@@ -2,13 +2,14 @@
 
 Status: EXPERIMENTAL. Normative grammar: [`grammar.ebnf`](grammar.ebnf) (W3C EBNF, the
 subset documented in its header). Authoritative implementation: `lmscript/dsl.ts` in
-github.com/lmctlhq/lmctl-mono (compiler, lmctl 0.2.444, DSLB v6). This document explains
+github.com/lmctlhq/lmctl-mono (DSLB v6): the lmctl 0.2.444 baseline plus mainline
+slice-3 `$return` writes, cross-checked against lmcode-cpp `aaa9088` return vectors. This document explains
 the grammar and lists what it deliberately does NOT say. Verification: `tests/grammar/`
 (the EBNF is machine-checked against the real compiler; see the README there).
 
 lmcode is a small, strongly typed, one-chunk language: a host program hands the chunk a
-context of objects and functions and runs it as a callback; the chunk returns nothing and
-its effects are the host calls it makes. It ships inside an lmscript `_lmcode_` block
+context of objects and functions and runs it as a callback. Released 0.2.444 exposes
+host-call effects; mainline also supports writes to an invocation return sink. It ships inside an lmscript `_lmcode_` block
 (`_dsl_` remains an accepted alias) or standalone to the compiler.
 
 ## The grammar by section
@@ -38,8 +39,9 @@ value-returning function ends in exactly one top-level `return expr;`.
 relational operators, `+`/`-`, `*`/`/`/`%`, unary `!`/`-`, then postfix method calls
 (`obj.m(args)`, chains allowed), then primaries: literals, parenthesized expressions,
 names, calls, and the collection literals. `&&` and `||` short-circuit. There is no
-ternary, no assignment expression, no indexing operator (collections are schema objects
-with `at(i)`), and no lambda. A minus directly before a number literal is the literal's
+ternary, no assignment expression, and no general indexing operator (collections are schema
+objects with `at(i)`). The mainline write-only `$return[stringExpr]` target is the sole
+indexing exception; it cannot be read. There is no lambda. A minus directly before a number literal is the literal's
 sign — `-0.5` is one constant.
 
 **The outer block (Part C).** In lmscript the chunk lives in a data block:
@@ -55,10 +57,13 @@ a qw/qi/qf/`%()` collection) spliced before the inner lexer runs; a computed fie
 compilation to run time. Blank lines and whole-line `#` comments are dropped before the
 inner grammar sees the body.
 
-**Planned, not in the grammar.** The `$return` forms are planned but not in the compiler
-at 0.2.444 and therefore not in the grammar; the consensus design lives in
-[`host-protocol.md`](host-protocol.md) §"Planned return frame", and when they land they get
-a production here.
+**Mainline return writes.** `$return = expr;`, `$return.name = expr;` and
+`$return[stringExpr] = expr;` are included in the grammar for slice 3. A literal `null`
+is also accepted as the complete RHS. Released **0.2.444 rejects these forms**; the
+corpus parse check uses mainline return vectors, while differential checks using
+0.2.444 establish only the shared baseline. The harness probes return support and reports
+its exact unsupported-dollar disagreements separately as `compiler-baseline`. Executing blocks and `load_schema`
+remain planned (slice 4). See the public [return contract](host-protocol.md#return-sink-and-frame-contract).
 
 ## Static semantics, not grammar
 
@@ -66,6 +71,11 @@ The EBNF accepts a slightly larger language than the compiler; each gap is a del
 split, checked by `dsl.ts` and listed here (the differential harness in `tests/grammar/`
 classifies compiler rejections against exactly this list):
 
+- **Return writes (mainline).** Targets are root or one-level keys only. The index
+  expression must be string; nested paths and reads are rejected. Values are bool,
+  string, int, float, `Json`, or typed `StrList`/`IntList`/`FloatList`/`StrMap`/`IntMap`/`FloatMap`,
+  plus the special null RHS; other opaque objects are rejected. Sink serialization and numeric validation follow the
+  [host contract](host-protocol.md#return-sink-and-frame-contract).
 - **Types.** Every expression has exactly one static type; no implicit conversions
   between primitives (`float(i)` widens, `int(f)` narrows, `str(x)` stringifies).
   `void` is a return type only. Mixed `int`/`float` operands are errors naming both types.
@@ -128,6 +138,8 @@ function declarations), `json` (a literal marker only when directly followed by 
 heredoc — elsewhere an ordinary name; the corpus calls `json(4)`), `qw` `qi` `qf`
 (collection literals only as `qw(` etc. not after `.` or `fn`), `end` (only in the outer
 block closer), and the block markers `_lmcode_` / `_dsl_` themselves.
+
+Mainline return writes add `$`, `[` and `]` punctuators and the contextual null RHS.
 
 Punctuators: `=> == != <= >= && || ( ) { } ; , : . ! = < > + - * / % @`. The function
 arrow `->` is two tokens in the compiler (`-` then `>`), and this grammar writes it the

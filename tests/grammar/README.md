@@ -1,7 +1,12 @@
 # Grammar checker for lmcode
 
 The normative grammar is `../../spec/grammar.ebnf` (W3C EBNF, subset documented in its
-header). This directory proves it machine-checkable against the real compiler
+header). The inner grammar covers released 0.2.444 plus mainline slice-3 return writes.
+The corpus gate is pinned in CI to C++ `aaa9088` / lmok `f13cc8f7` (799 bodies).
+The differential probes `$return` capability first. On released 0.2.444, grammar-accepted
+return writes rejected with the exact unsupported-dollar diagnostic are counted separately
+as `compiler-baseline`, rather than static semantics or evidence of shipped return support.
+This directory checks syntax against corpora and the real compiler
 (`lmscript/dsl.ts` in the monorepo, run from a private npm prefix, never a global install).
 
 - `ebnf_to_lark.py` — mechanical translator from the .ebnf subset to a Lark grammar. The

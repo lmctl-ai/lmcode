@@ -156,7 +156,11 @@ STATIC_PATTERNS = [
 ]
 
 
-def classify(message):
+def classify(message, *, return_baseline=False):
+    # A capability probe identifies the released compiler, rather than hiding arbitrary
+    # dollar-token errors under the broad static-semantics patterns.
+    if return_baseline and 'unexpected character "$"' in message:
+        return 'compiler-baseline'
     for pattern in STATIC_PATTERNS:
         if pattern in message:
             return 'static-semantics'
@@ -180,6 +184,14 @@ def main():
             seeds.append((f'{path.name}#{n}', splice_text(body)))
     if args.limit:
         seeds = seeds[:args.limit]
+
+    with tempfile.TemporaryDirectory(prefix="lmcode-return-capability-") as workdir:
+        return_support, return_message = compiler_verdict("$return = 1;", workdir)
+    if return_support is None:
+        print("RESULT: FAIL (compiler capability probe failed): " + return_message)
+        return 1
+    release_return_baseline = (return_support is False and 'unexpected character "$"' in return_message)
+    print("compiler $return capability: " + ("release baseline (unsupported)" if release_return_baseline else str(return_support)), flush=True)
 
     rng = random.Random(args.seed)
     parser = build_parser()
@@ -208,7 +220,7 @@ def main():
             if mine_ok == compiler_ok:
                 agreements += 1
                 continue
-            cls = classify(message)
+            cls = classify(message, return_baseline=release_return_baseline and mine_ok)
             disagreements.append({'seed': name, 'mutation': label,
                                   'grammar': 'accept' if mine_ok else 'reject',
                                   'compiler': 'accept' if compiler_ok else 'reject',
@@ -217,7 +229,8 @@ def main():
     print(f'agreements: {agreements}; outer-layer failures (not verdicts): {outer_failures}')
     bugs = [d for d in disagreements if d['class'] == 'GRAMMAR-REVIEW']
     static = [d for d in disagreements if d['class'] == 'static-semantics']
-    print(f'disagreements: {len(disagreements)} ({len(bugs)} grammar-review, {len(static)} static-semantics)')
+    baseline = [d for d in disagreements if d['class'] == 'compiler-baseline']
+    print(f'disagreements: {len(disagreements)} ({len(bugs)} grammar-review, {len(static)} static-semantics, {len(baseline)} compiler-baseline)')
     for d in bugs[:20]:
         print(f"  GRAMMAR-REVIEW {d['seed']} [{d['mutation']}]: grammar={d['grammar']} compiler={d['compiler']} -- {d['compiler_message']}")
     if args.json:

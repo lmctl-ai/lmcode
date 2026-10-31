@@ -1,6 +1,7 @@
 (*
   lmcode — formal grammar, W3C EBNF (https://www.w3.org/TR/REC-xml/#sec-notation).
-  Status: EXPERIMENTAL, matching compiler lmscript/dsl.ts at lmctl 0.2.444 (DSLB v6, spec v6).
+  Status: EXPERIMENTAL, DSLB v6: lmctl 0.2.444 baseline plus mainline slice-3 $return writes.
+  The released 0.2.444 compiler does not accept the return_write production.
 
   Notation used (a strict subset of W3C EBNF, chosen to stay machine-checkable):
     name ::= body          production; the body may span lines, each alternative indented
@@ -105,12 +106,18 @@ fn_body      ::= "{" statement* return_stmt? "}"   (* static: return_stmt exactl
 return_stmt  ::= "return" expr ";"             (* inside a function body only *)
 
 statement    ::= let_stmt | assign_stmt | if_stmt | for_stmt | while_stmt
-               | switch_stmt | break_stmt | continue_stmt | expr_stmt
+               | switch_stmt | break_stmt | continue_stmt | expr_stmt | return_write
 let_stmt     ::= "let" IDENT "=" expr ";"      (* static: declares a local; type inferred;
                                                   no redeclaration in one block; schema
                                                   names cannot be shadowed *)
 assign_stmt  ::= IDENT "=" expr ";"            (* static: target is a declared, writable
                                                   local of the expression's type *)
+(* Mainline slice 3; absent from released compiler 0.2.444. The special lvalue is
+   write-only and permits one key only. No general collection indexing is introduced. *)
+return_write ::= "$" "return" return_key? "=" return_value ";"
+return_key   ::= "." IDENT | "[" expr "]"       (* static: index expression is string *)
+return_value ::= expr                           (* static: bool|string|int|float|Json or typed list/map;
+                                                   null is special in this RHS position *)
 if_stmt      ::= "if" "(" expr ")" block ("else" (if_stmt | block))?
 for_stmt     ::= "for" "(" IDENT "in" (range_header | expr) ")" block
                                                  (* static: IDENT is read-only in the body;
@@ -240,6 +247,6 @@ json_literal ::= JSON_LITERAL                  (* written `json` HeredocLit in s
 
   `load_schema` does not exist in the compiler at lmctl 0.2.444 (a grep of lmscript.ts and
   data-formats.ts finds nothing); the header forms that exist are exactly schema=, cli= and
-  install= above. The PLANNED `$return` forms are likewise not in the compiler and therefore
-  not in the grammar; if they land, expect a statement form and mark it here until shipped.
+  install= above. Mainline slice-3 `$return` writes are specified in Part B; they are not
+  accepted by released 0.2.444. Executing blocks and load_schema remain planned (slice 4).
 *)
