@@ -52,3 +52,9 @@ The [executable v6 example](scripts/ci/examples/v6.lms) and its adjacent schema
 are compiled in CI, including a deliberately mistyped variant that must fail.
 This tests the published compile-only form, not the planned block-return syntax.
 The generated file must carry the DSLB v6 header; a v5-output control also fails.
+
+CI also extracts and compiles the seven current code examples in
+[the language reference](spec/language.md), with an explicit declaration schema
+for the illustrated host domain. The keyword inventory is data, not a test.
+A corrupted return-type control proves that changes to the document are checked.
+These are compile-only checks; the native sample matrix verifies host execution.

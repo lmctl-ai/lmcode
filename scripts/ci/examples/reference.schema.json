@@ -1,0 +1,11 @@
+{
+  "dsl.schema": 2,
+  "name": "reference_examples",
+  "types": {
+    "Node": {"methods": {"kind": [{"params": [], "returns": "string"}], "text": [{"params": [], "returns": "string"}]}},
+    "Reporter": {"methods": {"report": [{"params": ["string", "int"], "returns": "void"}]}}
+  },
+  "functions": {"key_fn": [{"params": ["int"], "returns": "string"}]},
+  "context": {"out": "Reporter"},
+  "interfaces": {"Rule": {"params": [{"name":"node","type":"Node"}], "returns": "void"}}
+}
