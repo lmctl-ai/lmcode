@@ -462,7 +462,7 @@ reference — every signature, semantics and error text — is `spec/std.md`; th
 | containers | `Int/Float/Str` × `Stack`, `Queue`, `PQ` (priority queue: min priority first, insertion-order ties) | 69 signatures |
 | json | `json_parse(string) -> Json` (strict JSON; the heredoc of §3.7 lowers to it) and the immutable `Json` navigation: `kind/len/at/get/has/keys/as_*`, `to_json` | 12 signatures |
 
-The released 0.2.444 bundle has 182 signatures. C++ main `aaa9088` has **206**,
+The released 0.2.444 bundle has 181 signatures. C++ main `aaa9088` has **206**,
 including 24 `lmcode_return_*` overloads for the mainline write-only return sink.
 The [generated inventory](std-signatures.md) describes that mainline catalog; see
 [std.md](std.md) for revision/digest differences and return helper semantics. Do not

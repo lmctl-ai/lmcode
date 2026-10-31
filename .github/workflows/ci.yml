@@ -12,7 +12,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   suite:
@@ -20,10 +20,29 @@ jobs:
     timeout-minutes: 30
     env:
       COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
+      LMCODE_CPP: ${{ github.workspace }}/scripts/ci/work/cpp
+      LMCODE_LMOK: ${{ github.workspace }}/scripts/ci/work/lmok
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-cpp
+          ref: main
+          path: scripts/ci/work/cpp
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmok
+          ref: main
+          path: scripts/ci/work/lmok
+          persist-credentials: false
+      - name: Install grammar dependency in a private Python environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/lmcode-python"
+          "$RUNNER_TEMP/lmcode-python/bin/python" -m pip install --disable-pip-version-check --no-input -r scripts/ci/requirements.txt
+          echo "$RUNNER_TEMP/lmcode-python/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24

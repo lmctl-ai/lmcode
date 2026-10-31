@@ -2,34 +2,38 @@
 """Parse every lmcode program in the conformance and sample corpora with the grammar, and
 report per-suite failures plus grammar coverage. Zero parse failures is the gate.
 
-Corpora (paths overridable as argv, in order):
+Use --cpp-root and --lmok-root (or LMCODE_CPP/LMCODE_LMOK). Corpora:
   1. lmcode-cpp conformance vectors + stdlib-vectors (raw .dsl bodies)
   2. lmcode-cpp sample-suite programs + examples (lmscript-wrapped; blocks extracted)
   3. lmok/rules/lmcode rule files (lmscript-wrapped; blocks extracted)
 """
 import os
 import sys
+import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from parse_lib import build_parser, parse_body, rule_inventory, tree_usage  # noqa: E402
 from extract_blocks import extract_blocks  # noqa: E402
 
-def corpus_roots():
-    """(suite, directory, mode) list. Override with LMCODE_CPP / LMOK for CI checkouts;
-    the defaults are the development layout."""
-    cpp = Path(os.environ.get('LMCODE_CPP', '/home/mma/repos/lmcode-team/lmcode-cpp'))
-    lmok = Path(os.environ.get('LMOK', '/home/mma/repos/lmcode-team/lmok'))
-    return [
-        ('conformance', cpp / 'conformance/vectors', 'raw'),
-        ('stdlib-vectors', cpp / 'conformance/stdlib-vectors', 'raw'),
-        ('sample-suite', cpp / 'sample-suite/programs', 'lms'),
-        ('cpp-examples', cpp / 'examples', 'lms'),
-        ('lmok-rules', lmok / 'rules/lmcode', 'lms'),
-    ], [cpp / 'test.lms']
-
-
 def main():
+    options = argparse.ArgumentParser(description=__doc__)
+    options.add_argument('--cpp-root', type=Path, default=os.environ.get('LMCODE_CPP'))
+    options.add_argument('--lmok-root', type=Path, default=os.environ.get('LMCODE_LMOK') or os.environ.get('LMOK'))
+    args = options.parse_args()
+    if args.cpp_root is None or args.lmok_root is None:
+        options.error('provide --cpp-root and --lmok-root; no machine-local defaults are used')
+    roots = [
+        ('conformance', args.cpp_root/'conformance/vectors', 'raw'),
+        ('stdlib-vectors', args.cpp_root/'conformance/stdlib-vectors', 'raw'),
+        ('sample-suite', args.cpp_root/'sample-suite/programs', 'lms'),
+        ('cpp-examples', args.cpp_root/'examples', 'lms'),
+        ('lmok-rules', args.lmok_root/'rules/lmcode', 'lms'),
+    ]
+    for suite, directory, mode in roots:
+        if not directory.is_dir(): options.error('missing corpus '+suite+': '+str(directory))
+        if not any(directory.rglob('*.dsl' if mode == 'raw' else '*.lms')):
+            options.error('empty corpus '+suite+': '+str(directory))
     parser = build_parser()
     failures = []
     total_files = 0
@@ -37,19 +41,18 @@ def main():
     used_rules = set()
     used_terms = set()
     per_suite = {}
-    roots, extra_lms = corpus_roots()
     for suite, directory, mode in roots:
-        files = sorted(directory.glob('*.dsl' if mode == 'raw' else '*.lms'))
+        files = sorted(directory.rglob('*.dsl' if mode == 'raw' else '*.lms'))
         suite_files = 0
         suite_bodies = 0
         for path in files:
             total_files += 1
             suite_files += 1
             if mode == 'raw':
-                bodies = [(path.name, path.read_text())]
+                bodies = [(path.name, path.read_text(encoding='utf8'))]
             else:
                 try:
-                    bodies = [(f'{path.name}#{n}', body) for n, (_m, body) in enumerate(extract_blocks(path.read_text()))]
+                    bodies = [(f'{path.name}#{n}', body) for n, (_m, body) in enumerate(extract_blocks(path.read_text(encoding='utf8')))]
                 except ValueError as error:
                     failures.append((suite, path.name, f'extract: {error}'))
                     continue
@@ -63,13 +66,14 @@ def main():
                     rules, terms = tree_usage(verdict.tree)
                     used_rules |= rules
                     used_terms |= terms
+        if suite_bodies == 0: failures.append((suite, str(directory), "no lmcode bodies found"))
         per_suite[suite] = (suite_files, suite_bodies)
-    for path in extra_lms:
+    for path in [args.cpp_root/'test.lms']:
         if not path.exists():
             continue
         total_files += 1
         try:
-            bodies = [(f'{path.name}#{n}', body) for n, (_m, body) in enumerate(extract_blocks(path.read_text()))]
+            bodies = [(f'{path.name}#{n}', body) for n, (_m, body) in enumerate(extract_blocks(path.read_text(encoding='utf8')))]
         except ValueError as error:
             failures.append(('extra', path.name, f'extract: {error}'))
             continue

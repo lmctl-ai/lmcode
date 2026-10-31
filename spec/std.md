@@ -1,7 +1,7 @@
 # lmcode std — the standard catalog
 
 Status: current (catalog version 3, `lmcode_std_v3`). The released 0.2.444 compiler bundle has
-182 signatures; current lmcode-cpp `main` has 206 signatures, including the return helpers below.
+181 signatures; current lmcode-cpp `main` has 206 signatures, including the return helpers below.
 The catalog is the standard
 declaration surface every `_lmcode_` block type-checks against: the compiler merges it into the
 effective schema by default (`spec/schema.md` §"The implicit standard merge"). Default
@@ -22,6 +22,12 @@ Normative sources:
 
 Where the prose documents and the canonical schema disagree, the schema wins; known disagreements
 are listed at the end.
+
+The 181 release count is verified by running `lmscript --dsl-signatures` on an
+empty host schema; host-provided declarations must not be counted as bundled std.
+
+The release count is measured with `lmscript --dsl-signatures` on an empty host
+schema, so host-declared extensions are not mistaken for bundled std.
 
 ## Ownership and drift pinning
 
@@ -44,7 +50,7 @@ catalog change is one edit in `lmcode-cpp` plus a lock refresh everywhere; no SD
 file locally, and the bundled compiler copy is never authored separately.
 
 Current C++ main has 206 signatures (24 return signatures were added within v3); the published
-0.2.444 bundle remains the 182-signature release catalog. The lmscript source at `aa6fecb5` pins
+0.2.444 bundle remains the 181-signature release catalog. The lmscript source at `aa6fecb5` pins
 `af6b9f51735238abe18497a707671aa071df8213d991e084b1880f3c12403f60`, so serialized bytes and overload ordering are not byte-identical to the C++
 `1defd1be…` schema. Treat these as compatibility pins to verify together. The catalog is **not** part of a host schema's identity: the merge happens after parsing and the
 bytecode hash covers the raw host schema bytes only (`spec/schema.md` §"Binding"), so a new
@@ -57,20 +63,21 @@ a DSLB format revision.
 |---|---|---|---|
 | v1 | `lmcode_std_v1` | 72 | string, math, collection and file declarations (42 free-function overloads, 30 collection methods; lmcode-std R01) |
 | v2 | `lmcode_std_v2` | 171 | the data catalog: containers (Stack/Queue/PQ), insertion-ordered maps and `Json` |
-| v3 release (0.2.444) | `lmcode_std_v3` | 182 | the v3 byte codecs, map snapshots, and `template_render` |
-| v3 current `lmcode-cpp` main | `lmcode_std_v3` | 206 | release catalog plus 24 `lmcode_return_*` overloads |
+| v3 release (0.2.444) | `lmcode_std_v3` | 181 | the v3 byte codecs and map snapshots |
+| v3 SDK/template stage | `lmcode_std_v3` | 182 | adds `template_render`; not injected by 0.2.444 |
+| v3 current `lmcode-cpp` main | `lmcode_std_v3` | 206 | template-stage catalog plus 24 `lmcode_return_*` overloads |
 
 v1's 72 and v2's 171 are recorded in `requirements/lmcode-std.md` R01 and
 `requirements/lmcode-std-v3.md` R02, and v2's count is verifiable from the lmcode-cpp history
 (`344c4db`, name `lmcode_std_v2`, 171 signatures). v3 first pinned exactly ten new signatures —
 four byte codecs and six map snapshots — for 181 (`f252243`, matching the v3 requirements'
 "181 total, assuming unchanged v2's 171"). `template_render` was then added within v3
-(`f8b6be5`, 2026-10-29) without a name bump, giving the released 182. Current C++ main
+(`f8b6be5`, 2026-10-29) without a name bump, giving the 182-signature SDK/template-stage catalog. Current C++ main
 subsequently added 24 return overloads, giving 206.
 
 ## The groups
 
-The released bundle has 182 signatures; current C++ main has 206 (the additional 24 are return
+The released bundle has 181 signatures; current C++ main has 206 (the additional 24 are return
 helpers). The groups below describe the current catalog:
 
 | Group | Contents | Signatures |
@@ -116,7 +123,7 @@ renderer over a `Json` context (`<path>`, `<items:{item|body}; separator=", ">`,
 ## `template_render` status
 
 Declared in the canonical v3 schema as `fn template_render(string, Json) -> string` and documented
-in `lmcode-std.docs.json`; the compiler bundle carries the same declaration. Implementations:
+in `lmcode-std.docs.json`; the mono compiler source carries the same declaration. Published 0.2.444 does not inject it. Implementations:
 
 - **lmcode-cpp: implemented** (`stdlib/json.hpp`, current main `aaa9088`, with the conformance
   vector `data-text-template`).
@@ -160,7 +167,7 @@ while their `StrMap` counterparts stay under `collections`. The table above foll
   is available"). The compiler has injected the catalog by default since the lmcode-std track
   landed; the README's merge instructions describe a pre-injection workflow. The schema and
   `std.lock`, not the README, are authoritative.
-- `requirements/lmcode-std-v3.md` R02 estimates 181 for v3; the released v3 is 182 after
+- `requirements/lmcode-std-v3.md` R02 estimates 181 for v3; the SDK/template-stage v3 is 182 after
   `template_render` joined within the version (`f8b6be5`), while current C++ main is 206 after
   the return overloads. `spec/language.md` §10 already records the release count; the catalog is
   authoritative.
