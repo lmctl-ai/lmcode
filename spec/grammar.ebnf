@@ -1,0 +1,244 @@
+(*
+  lmcode — formal grammar, W3C EBNF (https://www.w3.org/TR/REC-xml/#sec-notation).
+  Status: EXPERIMENTAL, matching compiler lmscript/dsl.ts at lmctl 0.2.444 (DSLB v6, spec v6).
+
+  Notation used (a strict subset of W3C EBNF, chosen to stay machine-checkable):
+    name ::= body          production; the body may span lines, each alternative indented
+    "..." / '...'          literal character strings
+    [a-z]  [^"..."]        character ranges and negated classes
+    #xN / #xNNNN           character by code point (hex)
+    A?  A*  A+  (A B)      optional / zero-or-more / one-or-more / grouping
+    A | B                  alternative
+    (* ... *)              comment
+    S, COMMENT             whitespace and comment tokens, skipped between tokens
+  The binary difference operator (A - B) is deliberately NOT used; every exclusion is a
+  negated character class.
+
+  Conventions:
+  - UPPERCASE names are tokens (the lexical grammar); lowercase names are parser rules.
+  - Keywords are reserved words of the language; where a keyword spelling is legal as a
+    name (annotation names), the production says so explicitly via KEYWORD_AS_NAME.
+  - Rules marked "(* static: ... *)" carry constraints the grammar cannot express; they are
+    listed in spec/grammar.md under "static semantics, not grammar".
+*)
+
+(* ============================== PART A: lexical grammar ============================== *)
+
+(* Skipped between tokens. Newlines are not significant except inside strings, heredoc
+   bodies, qw/qi/qf word lists and at a heredoc opener/closer boundary. *)
+S            ::= (#x20 | #x9 | #xD | #xA)+
+COMMENT      ::= "#" [^#xA]*
+
+IDENT        ::= [A-Za-z_] [A-Za-z0-9_]*
+INT_LIT      ::= [0-9]+                          (* static: value <= 2^53 *)
+FLOAT_LIT    ::= [0-9]+ "." [0-9]+             (* the ONLY float form: digits.digits;
+                                                  no exponent, no suffix, no bare dot *)
+STRING_LIT   ::= '"' (ESCAPE | [^"\\#xA])* '"' (* a string literal ends on its line *)
+ESCAPE       ::= "\\" ["'\\ntr]                (* exactly: \\ \" \n \t \r *)
+
+(* Heredocs (dsl-heredoc.ts). The tag is matched by the closing line; EBNF cannot express
+   "the same tag again", so the tag equality is a static constraint (see grammar.md) and the
+   checker implements the whole form procedurally, exactly like dsl.ts's own lexer does.
+   The opener line may carry further code after the tag (the boundary is whitespace, one of
+   , ) ] } ; or end of line); the body starts on the NEXT line. A plain <<TAG closes at a
+   line containing exactly TAG; <<~TAG (dedent) closes at a line whose text is leading
+   spaces/tabs then TAG, and the body loses the common indentation prefix (one indent kind
+   only -- mixed tabs/spaces are an error). *)
+(* checker: sentinel *)
+HEREDOC_LIT  ::= "<<" "~"? TAG [^#xA]* #xA HEREDOC_BODY_LINE* HEREDOC_CLOSER
+(* checker: sentinel:JSON *)
+JSON_LITERAL ::= "json" HEREDOC_LIT             (* the fused `json` + heredoc literal *)
+(* checker: documentary *)
+TAG          ::= [A-Za-z_] [A-Za-z0-9_]*
+(* checker: documentary *)
+HEREDOC_BODY_LINE  ::= [^#xA]* #xA                (* any text; opaque to the grammar *)
+(* checker: documentary *)
+HEREDOC_CLOSER     ::= [^#xA\S]* TAG              (* line = optional indent + the tag *)
+
+(* qw/qi/qf collection literals (quote tokens in dsl.ts): a word list in balanced
+   parentheses. Valid members never contain parentheses, so the list is flat. The word
+   charset/exclusion checks below are exactly dsl.ts's quoteLiteral rules. *)
+(* checker: sentinel:QW *)
+QW_LITERAL   ::= "qw" "(" QW_WORD* ")"      (* # starts a comment to EOL inside the list *)
+(* checker: sentinel:QI *)
+QI_LITERAL   ::= "qi" "(" QI_WORD* ")"
+(* checker: sentinel:QF *)
+QF_LITERAL   ::= "qf" "(" QF_WORD* ")"
+(* checker: documentary *)
+QW_WORD      ::= [^#x20#x9#xD#xA#xC#xB()"'\#]+    (* static: no "${" or "<<" inside,
+                                                     no control chars, no surrogates *)
+(* checker: documentary *)
+QI_WORD      ::= "-"? ( "0" | [1-9] [0-9]* )      (* int64 range: static *)
+(* checker: documentary *)
+QF_WORD      ::= "-"? ( "0" | [1-9] [0-9]* ) ("." [0-9]+)? (("e"|"E") ("+"|"-")? [0-9]+)?
+                                                 (* finite: static *)
+
+(* Every punctuation token of the language, longest first where one prefixes another:
+   => == != <= >= && || ( ) { } ; , : . ! = < > + - * / % @
+   Note: the function arrow "->" is TWO tokens in the compiler ("-" then ">"); this
+   grammar writes it as one literal only inside fn_decl, where no expression context can
+   produce "-" followed directly by ">". *)
+
+(* ============================= PART B: syntactic grammar ============================= *)
+
+program      ::= top_item*
+top_item     ::= fn_decl | statement
+fn_decl      ::= annotation? "fn" IDENT "(" params? ")" "->" type_name implements_clause? fn_body
+annotation   ::= "@" annot_name                (* directly before a top-level fn only *)
+annot_name   ::= IDENT | keyword_as_name      (* the name is never resolved; a keyword
+                                                  spelling names an anonymous node kind *)
+keyword_as_name ::= "let" | "if" | "else" | "true" | "false" | "for" | "in" | "range"
+                  | "fn" | "return" | "switch" | "case" | "default" | "while" | "break"
+                  | "continue" | "implements"
+params       ::= param ("," param)*
+param        ::= IDENT ":" type_name
+type_name    ::= IDENT                          (* static: int|float|string|bool|void or a
+                                                   schema object/enum name; void only as
+                                                   a function return type *)
+implements_clause ::= "implements" IDENT        (* static: required iff annotation present;
+                                                   name must be a schema interface and the
+                                                   signature must match it exactly *)
+fn_body      ::= "{" statement* return_stmt? "}"   (* static: return_stmt exactly once iff
+                                                      the return type is not void, and it
+                                                      must be the final statement *)
+return_stmt  ::= "return" expr ";"             (* inside a function body only *)
+
+statement    ::= let_stmt | assign_stmt | if_stmt | for_stmt | while_stmt
+               | switch_stmt | break_stmt | continue_stmt | expr_stmt
+let_stmt     ::= "let" IDENT "=" expr ";"      (* static: declares a local; type inferred;
+                                                  no redeclaration in one block; schema
+                                                  names cannot be shadowed *)
+assign_stmt  ::= IDENT "=" expr ";"            (* static: target is a declared, writable
+                                                  local of the expression's type *)
+if_stmt      ::= "if" "(" expr ")" block ("else" (if_stmt | block))?
+for_stmt     ::= "for" "(" IDENT "in" (range_header | expr) ")" block
+                                                 (* static: IDENT is read-only in the body;
+                                                    foreach form needs a collection object
+                                                    with exactly len() -> int and
+                                                    at(int) -> T *)
+range_header ::= "range" "(" expr "," expr ")"   (* static: both bounds int, step 1,
+                                                    excludes end *)
+while_stmt   ::= "while" "(" expr ")" block    (* static: condition bool *)
+switch_stmt  ::= "switch" "(" expr ")" "{" switch_arm+ "}"
+                                                 (* static: expr is int, string or enum;
+                                                    case values unique; default at most
+                                                    once and last; an enum switch without
+                                                    default covers every member *)
+switch_arm   ::= case_arm | default_arm
+case_arm     ::= "case" case_value ":" block
+default_arm  ::= "default" ":" block
+case_value   ::= "-"? INT_LIT | STRING_LIT | enum_const
+                                                 (* static: the kind matches the switch
+                                                    expression's type *)
+break_stmt   ::= "break" ";"                   (* static: inside a loop; cannot cross a
+                                                  function boundary *)
+continue_stmt ::= "continue" ";"               (* static: same rule as break *)
+block        ::= "{" statement* "}"
+expr_stmt    ::= expr ";"                      (* static: the expression must be a call
+                                                  (anything else "has no effect") *)
+
+expr         ::= or_expr
+or_expr      ::= and_expr ("||" and_expr)*     (* static: bool operands; short-circuit *)
+and_expr     ::= eq_expr ("&&" eq_expr)*       (* static: bool operands *)
+eq_expr      ::= rel_expr (("==" | "!=") rel_expr)*
+                                                 (* static: same primitive/enum type on
+                                                    both sides; objects cannot compare *)
+rel_expr     ::= add_expr (("<" | "<=" | ">" | ">=") add_expr)*
+                                                 (* static: both int or both float *)
+add_expr     ::= mul_expr (("+" | "-") mul_expr)*
+                                                 (* static: both int or both float, or
+                                                    string + string; object arithmetic via
+                                                    schema operators (incl. r+/r-) *)
+mul_expr     ::= unary_expr (("*" | "/" | "%") unary_expr)*
+                                                 (* static: both int or both float; % is
+                                                    int-only; literal zero divisor refused
+                                                    at check *)
+unary_expr   ::= "!" unary_expr                (* static: bool operand *)
+               | "-" unary_expr                (* static: int/float operand, or an object
+                                                    with a schema "neg" operator; a minus
+                                                    directly before a number literal folds
+                                                    into one signed constant *)
+               | postfix_expr
+postfix_expr ::= call_chain
+               | (INT_LIT | FLOAT_LIT | STRING_LIT | bool_lit
+                  | QW_LITERAL | QI_LITERAL | QF_LITERAL
+                  | map_literal | json_literal | HEREDOC_LIT | "(" expr ")") trailer*
+                                                 (* a method-call trailer on any non-name
+                                                    primary: qw(a).len(), (expr).m() *)
+trailer      ::= "." IDENT call_args         (* static: receiver is an object type, the
+                                                 method exists on it, arity/types match an
+                                                 overload (exact, else one declared
+                                                 conversion) *)
+call_args    ::= "(" (expr ("," expr)*)? ")"
+call_chain   ::= IDENT (call_args trailer* | "." IDENT (call_args trailer*)?)?
+                                                 (* a bare name (local/context -- static),
+                                                    a call (host fn, user fn or built-in
+                                                    with its exact signature -- static:
+                                                    str/float/int/abs/min/max/clamp/lerp/
+                                                    ease/ease_in/ease_out/sin/cos/sqrt/floor/
+                                                    pow), or a method-call chain. The
+                                                    IDENT "." IDENT form with NO following
+                                                    call is an enum constant (static: first
+                                                    IDENT is a schema enum, the second one
+                                                    of its values). The alternatives are
+                                                    left-factored so LALR(1) decides each
+                                                    with the same one-token lookahead the
+                                                    compiler's hand-written parser uses *)
+bool_lit     ::= "true" | "false"
+enum_const   ::= IDENT "." IDENT               (* in case_value position only *)
+map_literal  ::= "%" "(" (map_entry ("," map_entry)* ","?)? ")"
+                                                 (* static: all values one type
+                                                    (string|int|float). NOTE for implementors:
+                                                    "%" and "(" are two tokens; the map form
+                                                    is chosen only in primary position, so
+                                                    `5%(2)` lexes as five-modulo-(2) and
+                                                    `%(...)` at expression start is the map *)
+map_entry    ::= map_key "=>" expr
+map_key      ::= IDENT | STRING_LIT | "(" expr ")"
+                                                 (* static: a string; the IDENT form is a
+                                                    bare-word string key *)
+json_literal ::= JSON_LITERAL                  (* written `json` HeredocLit in source: the
+                                                  ident json immediately followed by a
+                                                  heredoc. The checker fuses the pair into
+                                                  one sentinel token because a bare "json"
+                                                  string terminal would shadow every
+                                                  variable named json (the corpus calls
+                                                  json(4) as a function). Static: only when
+                                                  json is not a declared local, function or
+                                                  context name; the body normalizes as a
+                                                  JSON literal *)
+
+(* ================== PART C: the outer lmscript-side block syntax ================== *)
+(* checker: end *)
+(*
+  Informative for the inner grammar; checked by tests/grammar/extract_blocks.py rather than
+  the token parser. An lmcode program lives in an lmscript data block:
+
+    lmcode_block ::= marker header_option* ";" newline body_line* closer
+    marker       ::= "_lmcode_" | "_dsl_"       (* spellings alias; the closer repeats the
+                                                   opener's spelling *)
+    header_option::= IDENT "=" string_literal   (* for lmcode: schema="FILE" | cli="PROGRAM
+                                                   [WORD...]" | install="github:OWNER/REPO@TAG";
+                                                   schema= and cli= are mutually exclusive,
+                                                   one is required, install= needs cli= with
+                                                   a bare program name. cli words match
+                                                   [A-Za-z0-9._-]+ -- no quoting, no shell.
+                                                   Values are string literals (a parenthesized
+                                                   literal is accepted); nothing computed. *)
+    closer       ::= "end" marker               (* at column 1, alone on its line *)
+    body_line    ::= any text                   (* blank lines and whole-line # comments are
+                                                   dropped before the inner grammar sees them;
+                                                   "${ expr }" fields are pre-process
+                                                   substitutions of lmscript values as DSL
+                                                   literals (string, int within +/-2^53,
+                                                   digits.digits float, bool, or a qw/qi/qf/
+                                                   %() collection literal), spliced BEFORE
+                                                   the inner lexer runs. A computed (non-
+                                                   literal) field defers compilation to run
+                                                   time. *)
+
+  `load_schema` does not exist in the compiler at lmctl 0.2.444 (a grep of lmscript.ts and
+  data-formats.ts finds nothing); the header forms that exist are exactly schema=, cli= and
+  install= above. The PLANNED `$return` forms are likewise not in the compiler and therefore
+  not in the grammar; if they land, expect a statement form and mark it here until shipped.
+*)
