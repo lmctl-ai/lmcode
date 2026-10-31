@@ -61,7 +61,7 @@ class InvocationEnvelopes(unittest.TestCase):
         self.assertGreaterEqual(len(errors),24)
         for case in errors:
             value=json.loads(case['frame'].splitlines()[1])
-            validate(value,{'mode':'single','programs':['unused'],'exit':2})
+            validate(value,{'mode':'single','programs':['unused'],'exit':2,'dry':case.get('dry',False)})
             self.assertEqual(case['frame'],'LMCODE_RETURN_BEGIN\n'+json.dumps(value,separators=(',',':'),ensure_ascii=False)+'\nLMCODE_RETURN_END\n')
 
     def test_exact_byte_oracle_rejects_value_equivalent_encodings(self):
