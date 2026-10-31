@@ -17,7 +17,12 @@ esac
 test -d "$RUNTIME_DIR/conformance/vectors" || { echo "runtime has no conformance vectors: $RUNTIME_DIR" >&2; exit 2; }
 test -d "$REFERENCE_CPP_DIR/conformance/vectors" || { echo "reference vectors missing" >&2; exit 2; }
 test -d "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" || { echo "reference stdlib vectors missing" >&2; exit 2; }
-test -x "$LMSCRIPT_BIN" || { echo "compiler is not executable: $LMSCRIPT_BIN" >&2; exit 2; }
+# Windows command launchers do not carry a POSIX executable bit. The
+# installer already executes --version; require their file, not Unix mode bits.
+case "$LMSCRIPT_BIN" in
+  *.cmd|*.bat) test -f "$LMSCRIPT_BIN" ;;
+  *) test -x "$LMSCRIPT_BIN" ;;
+esac || { echo "compiler launcher is missing or unusable: $LMSCRIPT_BIN" >&2; exit 2; }
 
 run_runtime() {
   case "$LANGUAGE" in

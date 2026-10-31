@@ -33,7 +33,8 @@ its 25 native jobs (Linux x64/arm64, macOS x64/arm64, Windows x64). It runs runt
 tests, sends the same reference core/stdlib vectors to each runner, refreshes
 samples with their own sync scripts, and recompiles/runs their sample suites.
 Go uses a local module replacement in the disposable sample checkout so it
-exercises the selected runtime revision. Nothing is repinned or pushed upstream.
+exercises the selected runtime revision. Refreshed lockfiles stay in the
+disposable checkout; nothing is committed or pushed upstream.
 The vectors and sample suite remain in lmcode-cpp; this workflow does not move
 the canonical source or silently skip catalog incompatibilities.
 
