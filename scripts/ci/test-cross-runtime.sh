@@ -17,10 +17,11 @@ EOF
 chmod +x "$tmp/compiler"
 cat > "$tmp/bin/go" <<'EOF'
 #!/bin/sh
-printf 'go %s\n' "$*" >> "$FAKE_LOG"
+printf '%s %s\n' "$(basename "$0")" "$*" >> "$FAKE_LOG"
 exit 0
 EOF
 chmod +x "$tmp/bin/go"
+cp "$tmp/bin/go" "$tmp/bin/cargo"
 for name in sync-sdk.sh sync-suite.sh; do
   cat > "$tmp/sample/scripts/$name" <<EOF
 #!/bin/sh
@@ -46,4 +47,6 @@ grep -F 'compiler --no-preflight test.lms' "$FAKE_LOG" >/dev/null
 grep -F 'sync-sdk.sh ' "$FAKE_LOG" >/dev/null
 grep -F 'sync-suite.sh ' "$FAKE_LOG" >/dev/null
 grep -F sample-test "$FAKE_LOG" >/dev/null
+test "$(LANGUAGE=rust RUNTIME_DIR="$tmp/runtime" REFERENCE_CPP_DIR="$tmp/ref" SAMPLE_DIR="$tmp/sample" "$root/scripts/ci/cross-runtime.sh" | tail -1)" = 'PASS cross-runtime rust'
+grep -F 'cargo run --release --manifest-path' "$FAKE_LOG" >/dev/null
 echo 'PASS cross-runtime runner contract and refusal controls'
