@@ -37,9 +37,9 @@ FLOAT_LIT    ::= [0-9]+ "." [0-9]+             (* the ONLY float form: digits.di
 STRING_LIT   ::= '"' (ESCAPE | [^"\\#xA])* '"' (* a string literal ends on its line *)
 ESCAPE       ::= "\\" ["'\\ntr]                (* exactly: \\ \" \n \t \r *)
 
-(* Heredocs (dsl-heredoc.ts). The tag is matched by the closing line; EBNF cannot express
+(* Heredocs (`dsl-heredoc.ts`). The tag is matched by the closing line; EBNF cannot express
    "the same tag again", so the tag equality is a static constraint (see grammar.md) and the
-   checker implements the whole form procedurally, exactly like dsl.ts's own lexer does.
+   checker implements the whole form procedurally, exactly like `dsl.ts`'s own lexer does.
    The opener line may carry further code after the tag (the boundary is whitespace, one of
    , ) ] } ; or end of line); the body starts on the NEXT line. A plain <<TAG closes at a
    line containing exactly TAG; <<~TAG (dedent) closes at a line whose text is leading
@@ -56,9 +56,9 @@ HEREDOC_BODY_LINE  ::= [^#xA]* #xA                (* any text; opaque to the gra
 (* checker: documentary *)
 HEREDOC_CLOSER     ::= [^#xA\S]* TAG              (* line = optional indent + the tag *)
 
-(* qw/qi/qf collection literals (quote tokens in dsl.ts): a word list in balanced
+(* qw/qi/qf collection literals (quote tokens in `dsl.ts`): a word list in balanced
    parentheses. Valid members never contain parentheses, so the list is flat. The word
-   charset/exclusion checks below are exactly dsl.ts's quoteLiteral rules. *)
+   charset/exclusion checks below are exactly `dsl.ts`'s quoteLiteral rules. *)
 (* checker: sentinel:QW *)
 QW_LITERAL   ::= "qw" "(" QW_WORD* ")"      (* # starts a comment to EOL inside the list *)
 (* checker: sentinel:QI *)
