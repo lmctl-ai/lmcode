@@ -54,8 +54,10 @@ thread safety, resource usage, or arbitrary application policy.
 The nine return vectors and separate nine-fixture return gate now cover ResultSink
 payload/frame behavior. All five core runners pass 406/406 locally with the
 merged sink observers; terminal-frame adoption by application CLIs remains a
-separate integration step. Executing blocks and `load_schema` (slice 4) remain planned for the supported
-baseline and are not certified by this extension. Outer-language reverse
+separate integration step. Executing blocks and immutable `load_schema` descriptors
+landed in mono main at `0bc80277`; the pinned released compiler 0.2.444 predates
+that addition. Their discovery/process/cancellation behavior is covered by the
+mono execution/frame tests, not certified by this VM-only extension. Outer-language reverse
 templating is separate from DSLB instruction conformance. No new bytecode version,
 return protocol, schema format, canonical repository move or compatibility layer
 is introduced by this audit.
