@@ -1,5 +1,7 @@
 # lmcode
 
+Syntax tooling: [tree-sitter-lmcode status, pins and integration boundaries](spec/tree-sitter-lmcode.md).
+
 lmcode is a small, strongly typed language that compiles to **DSLB v6** bytecode and runs
 inside a host program: the host declares its API as a JSON schema, the compiler type-checks
 a chunk against that schema, and a per-language runtime SDK loads, verifies and executes the
