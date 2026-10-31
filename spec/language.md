@@ -60,7 +60,7 @@ end _lmcode_
   exempt — they are preserved raw, §3.4).
 - `_dsl_` is an accepted alias with identical meaning and identical diagnostics (the diagnostic
   prefix is always `_lmcode_`).
-- The block value is opaque to lmscript (`type()` is `dsl`; it has no text, keys or methods, R02).
+- The block value is opaque to lmscript (`type()` is `dsl` (the current literal type name); it has no text, keys or methods, R02).
   `savedsl(dsl, path)` writes the compiled bytecode atomically (R03); `dsl_cli(dsl)` returns the
   argv prefix `[absolute program path, WORD...]` of a `cli=` block's host (R43), so a script runs
   exactly the binary its bytecode is bound to.
@@ -101,7 +101,7 @@ let if else true false for in range fn return switch case default while break co
 `qw`, `qi`, `qf`, `json` and `range`-like conveniences are **not** keywords; see §3.5 and §3.7 for
 how they are recognized contextually. Punctuators: `=> == != <= >= && || ( ) { } ; , : . ! = < > + - * / % @`
 and the heredoc opener `<<`. There is no shift operator; `<<` is reserved for heredocs
-(dsl-heredoc R07). A `->` (as in a `fn` return type) is lexed as `-` then `>`.
+(`dsl-heredoc` R07). A `->` (as in a `fn` return type) is lexed as `-` then `>`.
 
 ### 3.2 Numbers
 
@@ -122,7 +122,7 @@ sequence is a compile error. A string literal ends on its own line. Values are b
 run time a string may hold host-provided NUL bytes or invalid UTF-8, even though source literals
 are always UTF-8.
 
-### 3.4 Heredoc string literals (dsl-heredoc R01–R07)
+### 3.4 Heredoc string literals (`dsl-heredoc` R01–R07)
 
 `<<TAG` (raw) and `<<~TAG` (raw, dedented) are multi-line string literals:
 

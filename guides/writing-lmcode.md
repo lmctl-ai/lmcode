@@ -1,6 +1,6 @@
 # Writing lmcode programs — a tutorial
 
-Status: current for compiler `@lmctl-ai/lmctl` **0.2.444** (DSLB v6) and the `lmcode-cpp-sample`
+Status: current for compiler `@lmctl-ai/lmctl` **0.2.444** using lmcode bytecode (DSLB v6) and the `lmcode-cpp-sample`
 reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
 example and cites the specs instead of repeating them:
 

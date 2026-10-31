@@ -61,7 +61,7 @@ SAMPLE_DIR=/path/to/lmcode-cpp-sample bash scripts/ci/cross-runtime.sh
 The [executable v6 example](examples/v6.lms) and its adjacent schema
 are compiled in CI, including a deliberately mistyped variant that must fail.
 This tests the published compile-only form, not the planned block-return syntax.
-The generated file must carry the DSLB v6 header; a v5-output control also fails.
+The generated file must carry the lmcode bytecode (DSLB v6) header; a v5-output control also fails.
 
 CI also extracts and compiles the seven current code examples in
 [the language reference](../../spec/language.md), with an explicit declaration schema

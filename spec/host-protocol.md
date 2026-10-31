@@ -7,7 +7,7 @@ setup (slice 1) is landed and cross-port adoption (slice 2) remains in progress.
 `load_schema` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6); the frame contract below is what an
 executing block parses.
 
-A host is a native program that loads DSLB bytecode and runs it. The compiler never runs programs;
+A host is a native program that loads lmcode bytecode (`DSLB` magic) and runs it. The compiler never runs programs;
 the host never compiles them. They meet twice: at compile time the host prints its schema (the
 R42 query), and at run time the host executes the bytecode file it is handed and reports on stdout
 with a host-defined sequence of trace, result, and (when supported) return-frame records.
@@ -30,7 +30,7 @@ Normative sources:
 ## Flags
 
 Every lmcode host CLI offers these flags. A host with several schemas exposes one subcommand per
-schema and every DSL flag sits after it: `lmor cpsat --dsl F`, `lmor cpsat --dsl-schema --json`
+schema and every lmcode flag sits after it: `lmor cpsat --dsl F`, `lmor cpsat --dsl-schema --json`
 (R42). stdout is the protocol channel and is written as LF bytes on every platform (the sample
 hosts set `_O_BINARY` on Windows).
 
@@ -46,7 +46,7 @@ hosts set `_O_BINARY` on Windows).
 Anything else — no arguments, unknown options, missing values — is a usage error: exit 2 with the
 JSON record `{"ok": false, "phase": "cli", "code": "CLI_USAGE", "message": "usage: …"}` on stdout
 in the SDK-helper style where that host uses the helper. lmok prints its longer usage text on
-stderr for missing/invalid `--dsl` arguments and for its non-DSL subcommands; this is a host CLI
+stderr for missing/invalid `--dsl` arguments and for its non-lmcode subcommands; this is a host CLI
 usage path, not a result-record claim.
 
 ## The result record (one JSON line per program)
@@ -130,9 +130,9 @@ are landed in mono main at `0bc80277` (2026-10-31); they are absent from the rel
   and accepts subsequent field writes. Object keys are UTF-8 strings; writing
   an existing key replaces its value without changing insertion order, while a new key appends.
   A root field value is copied into the sink, so later VM/arena mutation cannot change the frame.
-- The DSL-facing overloads accept null, bool, string, int, float, `Json`, and the homogeneous
+- The lmcode-facing overloads accept null, bool, string, int, float, `Json`, and the homogeneous
   `StrList`/`IntList`/`FloatList`/`StrMap`/`IntMap`/`FloatMap` values registered by the host.
-  `Json` may contain recursive JSON arrays/objects; DSL list/map values remain homogeneous and
+  `Json` may contain recursive JSON arrays/objects; lmcode list/map values remain homogeneous and
   may be empty when constructed with a typed constructor. Mixed/nested structures use `Json`;
   unsupported opaque objects are rejected by the type checker. Numeric validation follows the rules above. Reverse-template extraction uses the same
   sink ownership and failure rules.

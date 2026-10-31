@@ -1,6 +1,6 @@
 (*
   lmcode — formal grammar, W3C EBNF (https://www.w3.org/TR/REC-xml/#sec-notation).
-  Status: EXPERIMENTAL, DSLB v6: lmctl 0.2.444 baseline plus mainline slice-3 $return writes.
+  Status: EXPERIMENTAL, lmcode bytecode (DSLB v6): lmctl 0.2.444 baseline plus mainline slice-3 $return writes.
   The released 0.2.444 compiler does not accept the return_write production.
 
   Notation used (a strict subset of W3C EBNF, chosen to stay machine-checkable):
@@ -237,7 +237,7 @@ json_literal ::= JSON_LITERAL                  (* written `json` HeredocLit in s
     body_line    ::= any text                   (* blank lines and whole-line # comments are
                                                    dropped before the inner grammar sees them;
                                                    "${ expr }" fields are pre-process
-                                                   substitutions of lmscript values as DSL
+                                                   substitutions of lmscript values as lmcode
                                                    literals (string, int within +/-2^53,
                                                    digits.digits float, bool, or a qw/qi/qf/
                                                    %() collection literal), spliced BEFORE

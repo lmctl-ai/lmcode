@@ -12,7 +12,7 @@ This directory checks syntax against corpora and the real compiler
 - `ebnf_to_lark.py` — mechanical translator from the .ebnf subset to a Lark grammar. The
   translation is the claim: the spec file IS the checked grammar.
 - `prelexer.py` — procedural handling for the two non-regular lexical forms (heredocs with
-  tag matching, qw/qi/qf word validation), mirroring dsl.ts's own tokenizer, plus the `${}`
+  tag matching, qw/qi/qf word validation), mirroring `dsl.ts`'s own tokenizer, plus the `${}`
   splice stand-in for lmscript-wrapped bodies.
 - `extract_blocks.py` — pulls `_lmcode_`/`_dsl_` block bodies out of .lms sources per the
   outer block rules.

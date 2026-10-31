@@ -1,4 +1,4 @@
-# DSLB v6 — bytecode file format
+# lmcode bytecode (DSLB v6) — bytecode file format
 
 Status: current. DSLB v6 is the only format version any shipped runtime reads. It is emitted by the
 `_lmcode_` / `_dsl_` compiler (`lmscript/dsl.ts` in the lmscript mono tree, published as npm

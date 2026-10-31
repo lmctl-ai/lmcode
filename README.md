@@ -2,7 +2,7 @@
 
 Syntax tooling: [tree-sitter-lmcode status, pins and integration boundaries](spec/tree-sitter-lmcode.md).
 
-lmcode is a small, strongly typed language that compiles to **DSLB v6** bytecode and runs
+lmcode is a small, strongly typed language that compiles to **lmcode bytecode (DSLB v6)** and runs
 inside a host program: the host declares its API as a JSON schema, the compiler type-checks
 a chunk against that schema, and a per-language runtime SDK loads, verifies and executes the
 bytecode with the host's objects. Programs are authored inside lmscript `_lmcode_` blocks;
@@ -124,3 +124,7 @@ The separate cross-runtime workflow snapshots runtime/sample main revisions and
 one resolved compiler version for five runtimes across five native platforms.
 It retains the existing C++ corpus home, refreshes disposable samples and reports
 incompatibilities without skipping them. Publication is not part of these workflows.
+
+## Historical literal names
+
+The documentation calls the language lmcode. `--dsl`, `--dsl-schema` and `--dsl-signatures` are current host flag literals; `DSLB` is the bytecode magic and `DSLB v6` is the current format name; `.dslb` is the current bytecode filename extension; `_dsl_` is the historical block spelling; `dsl.schema` is the current schema JSON key. Other code-formatted API names, paths, manifest names and diagnostic text retain their current literal spellings.

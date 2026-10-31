@@ -2,7 +2,7 @@
 
 Status: EXPERIMENTAL. Normative grammar: [`grammar.ebnf`](grammar.ebnf) (W3C EBNF, the
 subset documented in its header). Authoritative implementation: `lmscript/dsl.ts` in
-github.com/lmctlhq/lmctl-mono (DSLB v6): the lmctl 0.2.444 baseline plus mainline
+github.com/lmctlhq/lmctl-mono using lmcode bytecode (DSLB v6): the lmctl 0.2.444 baseline plus mainline
 slice-3 `$return` writes, cross-checked against lmcode-cpp `aaa9088` return vectors. This document explains
 the grammar and lists what it deliberately does NOT say. Verification: `tests/grammar/`
 (the EBNF is machine-checked against the real compiler; see the README there).
@@ -52,7 +52,7 @@ required and literal; `cli="PROGRAM [WORD...]"` reads the schema from the progra
 `install="github:OWNER/REPO@TAG"` (only with a bare `cli` name) pins where a missing host
 binary is fetched from. `load_schema` does not exist at lmctl 0.2.444 — the header forms
 are exactly `schema=`, `cli=`, `install=`. `${ }` fields are pre-process substitutions of
-lmscript values as DSL literals (string, int within ±2^53, `digits.digits` float, bool, or
+lmscript values as lmcode literals (string, int within ±2^53, `digits.digits` float, bool, or
 a qw/qi/qf/`%()` collection) spliced before the inner lexer runs; a computed field defers
 compilation to run time. Blank lines and whole-line `#` comments are dropped before the
 inner grammar sees the body.
@@ -152,7 +152,7 @@ The grammar is **LALR(1)** — `lark` in strict mode reports no conflicts — so
 LR/GLR-friendly by construction. The awkard bits are lexical, not syntactic:
 
 - Heredocs need tag-equality between opener and closer (not expressible in EBNF or a plain
-  regular terminal): both this checker and dsl.ts handle them procedurally. A tree-sitter
+  regular terminal): both this checker and `dsl.ts` handle them procedurally. A tree-sitter
   grammar needs an external scanner for the same reason.
 - `qw(`/`qi(`/`qf(` switch lexical mode (word lists until the balanced `)`), and only when
   the previous token is not `.` or `fn` — a one-token lookbehind.

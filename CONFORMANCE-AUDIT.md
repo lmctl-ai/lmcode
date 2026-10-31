@@ -5,10 +5,10 @@ not a new copy or a migration of canonical test data.
 
 | Surface | Current home | What a green result proves |
 | --- | --- | --- |
-| Core DSLB v6: 406 vectors (82 compiler C01 plus 324 boundary/rejection cases) | [C++ reference corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/vectors) | execution traces, rule entries, located runtime failures, malformed container/operand/loop refusal |
+| Core lmcode bytecode (DSLB v6): 406 vectors (82 compiler C01 plus 324 boundary/rejection cases) | [C++ reference corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/vectors) | execution traces, rule entries, located runtime failures, malformed container/operand/loop refusal |
 | Standard library: 268 vectors | [C++ standard corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/stdlib-vectors) | catalog operations and selected value/error partitions |
 | Native host integration: 114 cases (77 exit 0, 36 exit 3, 1 exit 4) + 23 compiler rejects | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
-| Compiler/checker and outer-language behavior | [mono DSL tests](https://github.com/lmctlhq/lmctl-mono/tree/main/lmscript/tests) | typing/schema rejection, splices/deferred checking, source mapping and check/dry-run behavior |
+| Compiler/checker and outer-language behavior | [mono lmcode tests](https://github.com/lmctlhq/lmctl-mono/tree/main/lmscript/tests) | typing/schema rejection, splices/deferred checking, source mapping and check/dry-run behavior |
 
 The core generator remains [in mono](https://github.com/lmctlhq/lmctl-mono/blob/main/lmscript/scripts/generate-dsl-conformance.ts).
 SDK ports copy committed corpus files with their existing sync scripts and digest
