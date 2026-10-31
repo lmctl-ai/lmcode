@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the tutorial's actual source blocks and compare its verbatim output blocks."""
+"""Run the tutorial's lmcode programs through run_lmcode and compare exact output."""
 import argparse
 import json
 import os
@@ -40,33 +40,38 @@ def same_diagnostic(actual, expected):
 with tempfile.TemporaryDirectory(prefix='tutorial ',dir=ROOT) as directory:
     work=Path(directory)
     shutil.copyfile(sample/'sample-suite/sample.dsl.json',work/'sample.dsl.json')
-    first_binary=None
     for offset in range(0,30,2):
         case=offset//2+1
         if args.case is not None and args.case!=case: continue
         body,expected=blocks[offset].strip(),blocks[offset+1].strip()
-        source=work/(str(case)+'.lms');binary=work/(str(case)+'.dslb')
+        source=work/(str(case)+'.lms')
         source.write_text(body+'\n',encoding='utf8')
-        check=subprocess.run([compiler,'--check',str(source)],env=env,capture_output=True,timeout=60)
         if expected.startswith('error:'):
+            check=subprocess.run([compiler,'--check',str(source)],env=env,capture_output=True)
             if check.returncode!=2 or not same_diagnostic(check.stderr.decode('utf8'),expected) or check.stdout:
                 raise SystemExit('Tutorial case '+str(case)+' compile diagnostic mismatch: '+repr(check))
         else:
-            if check.returncode or check.stdout or check.stderr: raise SystemExit('Tutorial check failed: '+repr(check))
-            built=subprocess.run([compiler,'--no-preflight',str(source),str(binary)],env=env,capture_output=True,timeout=60)
-            if built.returncode: raise SystemExit('Tutorial compilation failed: '+repr(built))
-            if first_binary is None: first_binary=binary
-            record=json.loads(next(line for line in expected.splitlines() if line.startswith('{"ok":')))
-            code=0 if record.get('ok') else (4 if record.get('phase')=='app' else 3)
-            run=subprocess.run([str(host),'--lmcode',str(binary)],env=env,capture_output=True,timeout=30)
-            if (run.returncode,run.stdout,run.stderr)!=(code,(expected+'\n').encode('utf8'),b''):
+            check=subprocess.run([compiler,'--check',str(source)],env=env,capture_output=True)
+            if check.returncode or check.stdout or check.stderr:
+                raise SystemExit('Tutorial check failed: '+repr(check))
+            run=subprocess.run([compiler,str(source)],env=env,capture_output=True)
+            if (run.returncode,run.stdout,run.stderr)!=(0,(expected+'\n').encode('utf8'),b''):
                 raise SystemExit('Tutorial case '+str(case)+' output mismatch: '+repr(run))
         print('PASS tutorial case',case)
     if args.case is None:
-        data=bytearray(first_binary.read_bytes());data[6]^=1
-        corrupt=work/'schema-mismatch.dslb';corrupt.write_bytes(data)
-        result=subprocess.run([str(host),'--lmcode',str(corrupt)],env=env,capture_output=True,timeout=30)
-        if (result.returncode,result.stdout,result.stderr)!=(3,(blocks[30].strip()+'\n').encode('utf8'),b''):
+        (work/'mismatch.schema.json').write_text(json.dumps({
+            'dsl.schema':2,'name':'tutorial_schema_mismatch','types':{},'functions':{},'context':{}
+        }),encoding='utf8')
+        mismatch=work/'schema-mismatch.lms'
+        mismatch.write_text('''program = _lmcode_ schema="mismatch.schema.json";
+let value = 1;
+end _lmcode_
+result = run_lmcode(program, {command: ["lmcode-cpp-sample", "--lmcode", "$DSLFILE"]});
+print(json_stringify(result));
+''',encoding='utf8')
+        result=subprocess.run([compiler,str(mismatch)],env=env,capture_output=True)
+        expected=(blocks[30].strip()+'\n').encode('utf8')
+        if (result.returncode,result.stdout,result.stderr)!=(0,expected,b''):
             raise SystemExit('Tutorial schema-mismatch example differs: '+repr(result))
         print('PASS 15 tutorial programs and the schema-hash mismatch example')
     elif not 1<=args.case<=15: ap.error('--case must be 1..15')

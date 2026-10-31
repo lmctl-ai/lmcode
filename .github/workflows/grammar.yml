@@ -78,7 +78,7 @@ jobs:
       - name: Install pinned npm oracle and Tree-sitter CLI
         run: |
           npm install --prefix "$RUNNER_TEMP/tree-sitter-diff" --no-audit --no-fund \
-            @lmctl-ai/lmctl@0.2.448 tree-sitter-cli@0.27.1
+            @lmctl-ai/lmctl@0.2.450 tree-sitter-cli@0.27.1
           (cd "$RUNNER_TEMP/tree-sitter-diff/node_modules/tree-sitter-cli" && node install.js)
           echo "LMSCRIPT_BIN=$RUNNER_TEMP/tree-sitter-diff/node_modules/.bin/lmscript" >> "$GITHUB_ENV"
           echo "TREE_SITTER=$RUNNER_TEMP/tree-sitter-diff/node_modules/.bin/tree-sitter" >> "$GITHUB_ENV"

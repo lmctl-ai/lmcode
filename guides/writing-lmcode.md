@@ -1,7 +1,6 @@
 # Writing lmcode programs — a tutorial
 
-Status: verified with compiler mono main **7a1829a1** using lmcode bytecode (DSLB v6) and the `lmcode-cpp-sample`
-reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
+Status: verified with published `@lmctl-ai/lmctl` **0.2.450** and the `lmcode-cpp-sample` reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
 example and cites the specs instead of repeating them:
 
 - Language rules (types, operators, statements, functions, rule entries): `spec/language.md`.
@@ -11,25 +10,16 @@ example and cites the specs instead of repeating them:
 - The test corpus every example pattern comes from: `spec/conformance.md` and the sample suite
   (`lmcode-cpp/sample-suite/`, programs `001`–`069`).
 
-**The 13 runnable lmcode examples were compiled with the mainline `lmscript` compiler and run against
-`lmcode-cpp-sample`; their stdout below is pinned verbatim. The two compile-error examples
-are intentional refusal controls.** Paths in
+**The 13 runnable lmcode examples execute through `run_lmcode` against `lmcode-cpp-sample`; their stdout below is pinned verbatim. The two compile-error examples are intentional refusal controls.** Paths in
 diagnostics (`/tmp/lmtut/…`) are the scratch directory the examples were verified in — yours will
 differ. The undefined-name diagnostic below is abbreviated: its scope inventory follows
 the host/catalog; runtime stdout examples are exact.
 
 ## 1. What you need
 
-Two things: the **compiler** and a **host**. An lmcode program never runs standalone — it is one
-chunk of statements that a host program runs as a callback inside a context the host owns
-(`spec/language.md` §1). The compiler turns your source into a `.dslb` bytecode file; the host
-loads and executes that file. The two never swap jobs.
+Two things: the **compiler** and a **host**. An lmcode program is declared in an `_lmcode_` block and executes through `run_lmcode`; the host owns its context and returns its typed result. The program handle is opaque, and the runtime manages the bytecode transfer.
 
-**The compiler** ships as `@lmctl-ai/lmctl` (Node 24 required). This flag cutover
-requires a compiler containing mono commits `4ccaaa08` and `78cf173b`; use a local
-mainline build until a release containing them is available. Set `LMSCRIPT_BIN`
-to that build's `lmscript/bin/lmscript` and put its directory on PATH for the
-commands below. The older 0.2.444 installation cannot use the renamed host flags.
+**The compiler** ships as `@lmctl-ai/lmctl` (Node 24 required). Install 0.2.450 or newer into a private prefix; it provides `run_lmcode`, `lmcode_build`, `load_schema`, typed results, and the `--lmcode-schema` flags. Set `LMSCRIPT_BIN` to the installed `lmscript` executable and put its directory on PATH.
 
 **The reference host** is `lmcode-cpp-sample`, a small shop application (C++17, Make, Python 3 —
 nothing else). Clone it and build:
@@ -57,7 +47,8 @@ program = _lmcode_ cli="lmcode-cpp-sample";
 let n = 7;
 print("hello from lmcode: " + str(n));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 - `cli="lmcode-cpp-sample"` tells the compiler to ask the host binary on your PATH for its schema
@@ -65,37 +56,28 @@ savedsl(program, ARGV[0]);
   against the exact host that will run it.
 - `print` and the context objects below are declared by the host's schema; `str` is a language
   built-in (`spec/language.md` §4).
-- `savedsl(program, ARGV[0])` writes the compiled bytecode to the path you pass as the script's
-  first argument.
+- `run_lmcode(program)` compiles and runs the opaque program through its declared host; its result carries the host summary and the typed program result.
 
-Compile it (two steps: a check, then the real run that produces the `.dslb`):
-
-```sh
-lmscript --check hello.lms        # silent, exit 0: the block type-checks
-lmscript hello.lms hello.dslb     # writes hello.dslb
-```
-
-Run it through the host:
+Check and run it through the declared host:
 
 ```sh
-lmcode-cpp-sample --lmcode hello.dslb
+lmscript --check hello.lms
+lmscript hello.lms
 ```
+
+The `run_lmcode` call invokes the host and returns a typed result map.
 
 Output — pinned verbatim:
 
 ```text
 hello from lmcode: 7
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
-The first line is the program's trace (whatever `print` wrote). The JSON **result record**
-reports success plus the host's own summary (here the shop's final ledger state). Current
-C++ sample main then emits a terminal return frame. These programs make no return-sink
-writes, so its value is `null`; the published compiler still treats the block as opaque. The record format and exit codes are `spec/host-protocol.md` §"The result
-record"; this run exited 0.
+The first line is the program's trace (whatever `print` wrote). The JSON **host summary**
+contains the shop's final ledger state. `run_lmcode` consumes the host's terminal frame and
+returns the typed program result (`null` here because this example makes no return-sink writes).
 
 Instead of `cli=`, a block may name a schema **file** with `schema="FILE"` (resolved like an
 import). The file must be the host's exact schema bytes — for the sample hosts that is
@@ -107,17 +89,16 @@ copy of that file next to your script:
 program = _lmcode_ schema="sample.dsl.json";
 print("hello via schema file");
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program, {command: ["lmcode-cpp-sample", "--lmcode", "$DSLFILE"]});
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim (compiled and run exactly as above):
 
 ```text
 hello via schema file
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 Both forms bind the bytecode to the schema's SHA-256, so a program compiled one way cannot run
@@ -141,7 +122,8 @@ let with_tax = float(cents) * (1.0 + rate);
 print("cents " + str(cents) + " with tax " + str(with_tax));
 print("int math " + str((7 + 3) * 2 / 4));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -149,10 +131,8 @@ Output — pinned verbatim:
 ```text
 cents 1299 with tax 1396.425
 int math 5
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 ### Wrapping int64 (§4, §5)
@@ -166,7 +146,8 @@ let hi = 9007199254740991 * 1024 + 1023;   # INT64_MAX
 print(str(hi));
 print(str(hi + 1));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -174,10 +155,8 @@ Output — pinned verbatim:
 ```text
 9223372036854775807
 -9223372036854775808
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 The one arithmetic failure is a zero divisor: a *literal* zero is a compile error, a computed zero
@@ -195,7 +174,8 @@ let name = str_upper("lmcode");
 print(name + " has " + str(str_len(name)) + " chars");
 print(str_replace("a-b-c", "-", "+"));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -203,10 +183,8 @@ Output — pinned verbatim:
 ```text
 LMCODE has 6 chars
 a+b+c
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 ### Lists and maps: `qw()` and `%(...)` (§3.5, §3.6, §6)
@@ -224,7 +202,8 @@ for (n in names) {
   print("name " + n);
 }
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -235,10 +214,8 @@ pears 5
 name alpha
 name beta
 name gamma
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 (`qi(...)` and `qf(...)` are the int and float word-literal forms; `json <<TAG` heredocs build
@@ -262,7 +239,8 @@ switch (total) {
   default: { print("other"); }
 }
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -270,10 +248,8 @@ Output — pinned verbatim:
 ```text
 total 13
 thirteen
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 `range(start, end)` counts up by 1 and excludes `end`; `switch` takes int, string or enum
@@ -292,17 +268,16 @@ fn fee_cents(amount: int, pct: int) -> int {
 let price = 1299;
 print("fee " + str(fee_cents(price, 8)));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
 
 ```text
 fee 103
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 Because calls are inlined, recursion is impossible — there is no call stack in the bytecode. The
@@ -315,11 +290,12 @@ fn recur(x: int) -> int {
 }
 print(str(recur(1)));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 ```text
-error:/tmp/lmtut/recursion-error.lms:3:10: _lmcode_: recursive user functions are not allowed (cycle: recur -> recur)
+error:/tmp/tutorial-0450-l8dkfzu9/9.lms:3:10: _lmcode_: recursive user functions are not allowed (cycle: recur -> recur)
 ```
 
 Inlining also means output grows with call sites — use loops for repeated work (§7).
@@ -340,7 +316,8 @@ let cfg = json <<~CFG;
 CFG
 print("limit " + str(cfg.get("limit").as_int()));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -349,10 +326,8 @@ Output — pinned verbatim:
 3 parts, second is b
 floor 3 pow 1024
 limit 3
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 ## 4. Talking to the host
@@ -376,7 +351,8 @@ switch (shop.currency()) {
   case Currency.EUR: { print("euros"); }
 }
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -386,10 +362,8 @@ unit 1250 USD
 balance 2000
 plus 250 1500
 dollars
-{"ok": true, "result": {"balance": 2000, "entries": 1, "note": "", "entries_called": 0}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 2000, "entries": 1, "note": "", "entries_called": 0}}
+{"ok":true,"result":null}
 ```
 
 What just happened, per the schema rules in `spec/schema.md`:
@@ -425,7 +399,8 @@ fn score_total(m: Money) -> int implements Score {
 }
 print("body ran");
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 Output — pinned verbatim:
@@ -436,10 +411,8 @@ item costs 125
 item costs 250
 item costs 375
 entry score_total = 7
-{"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 4}}
-LMCODE_RETURN_BEGIN
-null
-LMCODE_RETURN_END
+{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 4}}
+{"ok":true,"result":null}
 ```
 
 The body ran first (`body ran`), then the host dispatched the entries in source order: the `@item`
@@ -460,11 +433,12 @@ output abbreviated as noted above, exit 2):
 program = _lmcode_ cli="lmcode-cpp-sample";
 print(str(undeclared_name));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 ```text
-error:/tmp/lmtut/undefined-error.lms:2:11: _lmcode_: undefined name 'undeclared_name' (locals are declared with let; the schema provides: …, template_render, …; built-ins: float, str, sin, cos, sqrt, abs, floor, pow, min, max, clamp, lerp, ease, ease_in, ease_out, int)
+error:/tmp/tutorial-0450-l8dkfzu9/13.lms:2:11: _lmcode_: undefined name 'undeclared_name' (locals are declared with let; the schema provides: shop, ledger, money, fee, sample_tmp, print, assert_close, host_int, host_float, host_float_case, host_bool, host_bytes, host_hex, host_echo_money, host_is_null, host_str_list, host_int_list, host_float_list, host_str_map, host_same, host_null, host_void, host_wrong, host_sum, host_long_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, file_append, file_exists, file_lines, file_read, file_write, float_list, float_map, float_pq, float_queue, float_stack, int_list, int_map, int_pq, int_queue, int_stack, json_parse, lmcode_return_null, lmcode_return_put, lmcode_return_put_null, lmcode_return_set, math_abs, math_ceil, math_floor, math_max, math_min, math_pow, math_round, math_sqrt, str_contains, str_ends_with, str_find, str_is_float, str_is_int, str_len, str_list, str_lower, str_map, str_match, str_pq, str_queue, str_repeat, str_replace, str_split, str_stack, str_starts_with, str_substr, str_to_float, str_to_int, str_trim, str_upper, str_base64_encode, str_base64_decode, str_hex_encode, str_hex_decode, template_render; built-ins: float, str, sin, cos, sqrt, abs, floor, pow, min, max, clamp, lerp, ease, ease_in, ease_out, int)
 ```
 
 Column 11 is where `undeclared_name` starts on line 2. The diagnostic category, location, and
@@ -479,11 +453,12 @@ program = _lmcode_ cli="lmcode-cpp-sample";
 let zero = 0;
 print(str(1 / zero));
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 ```text
-{"ok": false, "phase": "run", "code": "RUN_ERROR", "message": "dsl line 3:13: int division by zero", "line": 3, "column": 13}
+{"ok":false,"phase":"run","code":"RUN_ERROR","message":"dsl line 3:13: int division by zero","line":3,"column":13}
 ```
 
 `dsl line 3:13` is the `/` on the third body line. (A *literal* `1 / 0` would not get this far —
@@ -497,12 +472,13 @@ program = _lmcode_ cli="lmcode-cpp-sample";
 ledger.record(money(-100));
 print("recorded a refund with no sale");
 end _lmcode_
-savedsl(program, ARGV[0]);
+result = run_lmcode(program);
+print(json_stringify(result));
 ```
 
 ```text
 recorded a refund with no sale
-{"ok": false, "phase": "app", "code": "APP_FAIL", "message": "ledger: negative balance"}
+{"ok":false,"phase":"app","code":"APP_FAIL","message":"ledger: negative balance"}
 ```
 
 **Schema-hash mismatch** is a *load* error, exit 3, raised before anything executes: the compiler
@@ -511,7 +487,7 @@ hashes the exact schema bytes into the bytecode header and the loader refuses a 
 sample-suite case `091`) gives, pinned verbatim:
 
 ```text
-{"ok": false, "phase": "load", "code": "LOAD_SCHEMA_MISMATCH", "message": "sample schema mismatch"}
+{"ok":false,"phase":"load","code":"LOAD_SCHEMA_MISMATCH","message":"sample schema mismatch"}
 ```
 
 The practical upshot: any change to the host's schema — even a semantically neutral reformat of

@@ -30,7 +30,7 @@ conformance contract every runtime must pass.
 Prerequisites: Node 24+, npm, a C++17 compiler, Make, Python 3 and Git.
 
 ```sh
-npm install --prefix /tmp/lmcode-tools @lmctl-ai/lmctl@0.2.444   # private install, not global
+npm install --prefix /tmp/lmcode-tools @lmctl-ai/lmctl@0.2.450   # private install, not global
 export PATH="/tmp/lmcode-tools/node_modules/.bin:$PATH"
 git clone https://github.com/lmctl-ai/lmcode-cpp-sample
 cd lmcode-cpp-sample && make            # builds the reference host
@@ -114,7 +114,7 @@ accepted source into accepted differences.
 local checks and selecting a newer version or tag. Pushes to main, pull requests
 and manual runs use GitHub-hosted runners with Node 24; no global lmctl is needed.
 The selector is workflow input compiler_version, then LMCODE_COMPILER_VERSION,
-then scripts/ci/compiler-version (0.2.444).
+then scripts/ci/compiler-version (0.2.450).
 
 CI compiles the documented language examples, parses the reference corpora with
 the formal and Tree-sitter grammars, checks generated standard signatures, and runs
