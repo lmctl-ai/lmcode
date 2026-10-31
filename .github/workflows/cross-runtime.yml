@@ -1,0 +1,115 @@
+name: cross-runtime
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      compiler_version:
+        description: 'Published npm version/tag; blank uses repo variable or pin file'
+        required: false
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: cross-runtime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  revisions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.refs.outputs.matrix }}
+      reference_sha: ${{ steps.refs.outputs.reference_sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - id: refs
+        name: Snapshot runtime and sample main revisions
+        run: python3 scripts/ci/matrix.py
+  conformance:
+    needs: revisions
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.revisions.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.language }} / ${{ matrix.platform }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
+      LANGUAGE: ${{ matrix.language }}
+      LMCODE_COMPILER_EXPLICIT_STD: '1'
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-${{ matrix.language }}
+          ref: ${{ matrix.runtime_sha }}
+          path: .ci-work/runtime
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-cpp
+          ref: ${{ needs.revisions.outputs.reference_sha }}
+          path: .ci-work/reference
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-${{ matrix.language }}-sample
+          ref: ${{ matrix.sample_sha }}
+          path: .ci-work/sample
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Selected published compiler
+        run: bash scripts/ci/install-compiler.sh
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34
+        if: matrix.language == 'go'
+        with:
+          go-version: '1.26'
+          cache-dependency-path: .ci-work/runtime/go.sum
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        if: matrix.language == 'csharp'
+        with:
+          dotnet-version: 8.0.x
+      - uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173
+        if: matrix.language == 'java'
+        with:
+          java-version: '21'
+          distribution: graalvm-community
+      - name: Rust toolchain
+        if: matrix.language == 'rust'
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: C++ toolchain on Windows
+        if: runner.os == 'Windows' && matrix.language == 'cpp'
+        run: choco install -y mingw make
+      - name: Portable timeout on macOS
+        if: runner.os == 'macOS'
+        run: brew install coreutils
+      - name: Python launcher on Windows
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p .ci-bin
+          printf '#!/usr/bin/env bash\nexec python "$@"\n' > .ci-bin/python3
+          chmod +x .ci-bin/python3
+          echo "$PWD/.ci-bin" >> "$GITHUB_PATH"
+      - name: Runtime tests, shared conformance and recompiled sample suite
+        run: |
+          export RUNTIME_DIR="$(cd .ci-work/runtime && pwd)"
+          export REFERENCE_CPP_DIR="$(cd .ci-work/reference && pwd)"
+          export SAMPLE_DIR="$(cd .ci-work/sample && pwd)"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            RUNTIME_DIR="$(cd .ci-work/runtime && pwd -W)"
+            REFERENCE_CPP_DIR="$(cd .ci-work/reference && pwd -W)"
+            SAMPLE_DIR="$(cd .ci-work/sample && pwd -W)"
+            export RUNTIME_DIR REFERENCE_CPP_DIR SAMPLE_DIR
+          fi
+          bash scripts/ci/cross-runtime.sh

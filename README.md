@@ -26,3 +26,22 @@ To select a different published compiler:
 COMPILER_VERSION=staging source scripts/ci/install-compiler.sh
 bash scripts/ci/run-suite.sh
 ```
+
+The cross-runtime workflow snapshots main revisions of the five runtime repos,
+their matching sample repos, and lmcode-cpp's reference vectors before starting
+its 25 native jobs (Linux x64/arm64, macOS x64/arm64, Windows x64). It runs runtime
+tests, sends the same reference core/stdlib vectors to each runner, refreshes
+samples with their own sync scripts, and recompiles/runs their sample suites.
+Go uses a local module replacement in the disposable sample checkout so it
+exercises the selected runtime revision. Nothing is repinned or pushed upstream.
+The vectors and sample suite remain in lmcode-cpp; this workflow does not move
+the canonical source or silently skip catalog incompatibilities.
+
+For a single cross-runtime run after installing the compiler, supply disposable
+checkouts and the language name (cpp, rust, go, java or csharp):
+
+```sh
+LANGUAGE=cpp RUNTIME_DIR=/path/to/lmcode-cpp \
+REFERENCE_CPP_DIR=/path/to/reference-lmcode-cpp \
+SAMPLE_DIR=/path/to/lmcode-cpp-sample bash scripts/ci/cross-runtime.sh
+```
