@@ -7,6 +7,7 @@ Corpora (paths overridable as argv, in order):
   2. lmcode-cpp sample-suite programs + examples (lmscript-wrapped; blocks extracted)
   3. lmok/rules/lmcode rule files (lmscript-wrapped; blocks extracted)
 """
+import os
 import sys
 from pathlib import Path
 
@@ -14,14 +15,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from parse_lib import build_parser, parse_body, rule_inventory, tree_usage  # noqa: E402
 from extract_blocks import extract_blocks  # noqa: E402
 
-DEFAULT_ROOTS = [
-    ('conformance', Path('/home/mma/repos/lmcode-team/lmcode-cpp/conformance/vectors'), 'raw'),
-    ('stdlib-vectors', Path('/home/mma/repos/lmcode-team/lmcode-cpp/conformance/stdlib-vectors'), 'raw'),
-    ('sample-suite', Path('/home/mma/repos/lmcode-team/lmcode-cpp/sample-suite/programs'), 'lms'),
-    ('cpp-examples', Path('/home/mma/repos/lmcode-team/lmcode-cpp/examples'), 'lms'),
-    ('lmok-rules', Path('/home/mma/repos/lmcode-team/lmok/rules/lmcode'), 'lms'),
-]
-EXTRA_LMS = [Path('/home/mma/repos/lmcode-team/lmcode-cpp/test.lms')]
+def corpus_roots():
+    """(suite, directory, mode) list. Override with LMCODE_CPP / LMOK for CI checkouts;
+    the defaults are the development layout."""
+    cpp = Path(os.environ.get('LMCODE_CPP', '/home/mma/repos/lmcode-team/lmcode-cpp'))
+    lmok = Path(os.environ.get('LMOK', '/home/mma/repos/lmcode-team/lmok'))
+    return [
+        ('conformance', cpp / 'conformance/vectors', 'raw'),
+        ('stdlib-vectors', cpp / 'conformance/stdlib-vectors', 'raw'),
+        ('sample-suite', cpp / 'sample-suite/programs', 'lms'),
+        ('cpp-examples', cpp / 'examples', 'lms'),
+        ('lmok-rules', lmok / 'rules/lmcode', 'lms'),
+    ], [cpp / 'test.lms']
 
 
 def main():
@@ -32,7 +37,8 @@ def main():
     used_rules = set()
     used_terms = set()
     per_suite = {}
-    for suite, directory, mode in DEFAULT_ROOTS:
+    roots, extra_lms = corpus_roots()
+    for suite, directory, mode in roots:
         files = sorted(directory.glob('*.dsl' if mode == 'raw' else '*.lms'))
         suite_files = 0
         suite_bodies = 0
@@ -58,7 +64,7 @@ def main():
                     used_rules |= rules
                     used_terms |= terms
         per_suite[suite] = (suite_files, suite_bodies)
-    for path in EXTRA_LMS:
+    for path in extra_lms:
         if not path.exists():
             continue
         total_files += 1

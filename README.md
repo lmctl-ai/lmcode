@@ -53,6 +53,17 @@ are compiled in CI, including a deliberately mistyped variant that must fail.
 This tests the published compile-only form, not the planned block-return syntax.
 The generated file must carry the DSLB v6 header; a v5-output control also fails.
 
+The grammar of the language itself is specified formally in
+[spec/grammar.ebnf](spec/grammar.ebnf) (W3C EBNF; the subset is documented in its header),
+with prose and the static-semantics boundary in [spec/grammar.md](spec/grammar.md). The
+grammar is normative and machine-checked: `tests/grammar/check_corpus.py` translates it to
+a parser generator grammar (Lark) and parses every lmcode body in the conformance vectors,
+stdlib vectors, sample suite and lmok rules with zero failures, and
+`tests/grammar/mutate_diff.py` differentially tests accept/reject against the real compiler
+on a token-mutation corpus. The [grammar workflow](.github/workflows/grammar.yml) runs both
+in CI on changes to the grammar or its checker. The grammar is LALR(1)-clean (Lark strict
+mode), so it doubles as the cross-check source for the tree-sitter grammar.
+
 CI also extracts and compiles the seven current code examples in
 [the language reference](spec/language.md), with an explicit declaration schema
 for the illustrated host domain. The keyword inventory is data, not a test.

@@ -1,0 +1,33 @@
+# Grammar checker for lmcode
+
+The normative grammar is `../../spec/grammar.ebnf` (W3C EBNF, subset documented in its
+header). This directory proves it machine-checkable against the real compiler
+(`lmscript/dsl.ts` in the monorepo, run from a private npm prefix, never a global install).
+
+- `ebnf_to_lark.py` — mechanical translator from the .ebnf subset to a Lark grammar. The
+  translation is the claim: the spec file IS the checked grammar.
+- `prelexer.py` — procedural handling for the two non-regular lexical forms (heredocs with
+  tag matching, qw/qi/qf word validation), mirroring dsl.ts's own tokenizer, plus the `${}`
+  splice stand-in for lmscript-wrapped bodies.
+- `extract_blocks.py` — pulls `_lmcode_`/`_dsl_` block bodies out of .lms sources per the
+  outer block rules.
+- `parse_lib.py` — parser construction, verdicts, coverage accounting.
+- `check_corpus.py` — parses every lmcode body in the conformance vectors, stdlib vectors,
+  sample-suite, examples and lmok rules; requires zero failures; prints rule/terminal
+  coverage.
+- `mutate_diff.py` — differential accept/reject against the real compiler (`lmscript
+  --check`, from `npm install --prefix /tmp/wp33-lmctl @lmctl-ai/lmctl@0.2.444`) on a
+  token-level mutation corpus; every disagreement is classified grammar bug (fixed) or
+  documented static-semantics difference (spec/grammar.md).
+
+Run locally (Python 3 with `pip install 'lark[interegular]'` in a venv, and the private
+compiler install for the differential):
+
+```sh
+python3 tests/grammar/check_corpus.py
+python3 tests/grammar/mutate_diff.py            # needs LMSCRIPT_BIN or the /tmp prefix
+```
+
+CI runs the corpus check on every push (`.github/workflows/grammar.yml`); the
+differential stays manual/scheduled because it needs a private compiler install and takes
+minutes.

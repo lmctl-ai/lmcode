@@ -75,15 +75,16 @@ QF_WORD      ::= "-"? ( "0" | [1-9] [0-9]* ) ("." [0-9]+)? (("e"|"E") ("+"|"-")?
 
 (* Every punctuation token of the language, longest first where one prefixes another:
    => == != <= >= && || ( ) { } ; , : . ! = < > + - * / % @
-   Note: the function arrow "->" is TWO tokens in the compiler ("-" then ">"); this
-   grammar writes it as one literal only inside fn_decl, where no expression context can
-   produce "-" followed directly by ">". *)
+   Note: the function arrow is TWO tokens in the compiler ("-" then ">"), so this grammar
+   writes it as two literals; whitespace between them is accepted, exactly as the compiler
+   accepts `fn f() - > int {}`. No expression context can produce "-" directly followed by
+   ">", so the pairing is unambiguous. *)
 
 (* ============================= PART B: syntactic grammar ============================= *)
 
 program      ::= top_item*
 top_item     ::= fn_decl | statement
-fn_decl      ::= annotation? "fn" IDENT "(" params? ")" "->" type_name implements_clause? fn_body
+fn_decl      ::= annotation? "fn" IDENT "(" params? ")" "-" ">" type_name implements_clause? fn_body
 annotation   ::= "@" annot_name                (* directly before a top-level fn only *)
 annot_name   ::= IDENT | keyword_as_name      (* the name is never resolved; a keyword
                                                   spelling names an anonymous node kind *)

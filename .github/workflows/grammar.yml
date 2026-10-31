@@ -1,0 +1,53 @@
+name: grammar
+on:
+  push:
+    branches: [main]
+    paths: [spec/grammar.ebnf, spec/grammar.md, tests/grammar/**, .github/workflows/grammar.yml]
+  pull_request:
+    paths: [spec/grammar.ebnf, spec/grammar.md, tests/grammar/**, .github/workflows/grammar.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: grammar-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Check out the conformance/sample corpora
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-cpp
+          path: corpora/lmcode-cpp
+          persist-credentials: false
+      - name: Check out the lmok rule corpus
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmok
+          path: corpora/lmok
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - name: Install lark into a private venv
+        run: |
+          python -m venv .venv-grammar
+          .venv-grammar/bin/pip install --quiet 'lark[interegular]'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Install the published compiler into a private npm prefix
+        run: bash scripts/ci/install-compiler.sh
+      - name: Parse the full corpus with the grammar (zero failures required)
+        run: |
+          LMCODE_CPP="$GITHUB_WORKSPACE/corpora/lmcode-cpp" LMOK="$GITHUB_WORKSPACE/corpora/lmok" \
+            .venv-grammar/bin/python tests/grammar/check_corpus.py
+      - name: Differential accept/reject against the real compiler
+        run: |
+          LMCODE_CPP="$GITHUB_WORKSPACE/corpora/lmcode-cpp" \
+            .venv-grammar/bin/python tests/grammar/mutate_diff.py
