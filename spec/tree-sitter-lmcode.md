@@ -1,7 +1,8 @@
 # lmcode tree-sitter syntax tooling
 
-Status: S2 grammar implemented; schema-semantic differential testing (S3), lmok
-registration/facts (S4), and injection/offset rebasing (S5) remain separate work.
+Status: S2 grammar implemented; S3 accept/reject differential is implemented in
+the shared [`lmcode` specification repository](../tests/grammar/README.md). lmok
+registration/facts (S4) and injection/offset rebasing (S5) remain separate work.
 
 The public MIT grammar is [lmctl-ai/tree-sitter-lmcode](https://github.com/lmctl-ai/tree-sitter-lmcode).
 Its maintainer/sync owner is the lmctl lmscript team. It commits grammar.js, the
@@ -20,6 +21,12 @@ lmok rules and C++ sample programs), 21 malformed inputs, incremental UTF-8 edit
 and seven production-copy failure controls. Actions runs generation freshness,
 scanner compilation and the suites on Ubuntu/macOS. The validated successful run is
 [41172488883](https://github.com/lmctl-ai/tree-sitter-lmcode/actions/runs/41172488883).
+
+The shared S3 gate pins both grammar commits, tree-sitter-cli 0.27.1 and the
+published lmscript compiler 0.2.448. It builds each grammar and compares acceptance
+over the public corpora plus deterministic malformed variants; local `--live` also
+reads the mono and skills-scripts checkouts without publishing their source. See
+[`DIVERGENCES.md`](../DIVERGENCES.md) for the published-versus-mainline boundary.
 
 The grammar recognizes typed functions, annotations/implements, control flow,
 qw/qi/qf, map entries, queued raw/dedented heredocs, parsed LMScript splices, and

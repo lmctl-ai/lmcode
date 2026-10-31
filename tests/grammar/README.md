@@ -1,4 +1,4 @@
-# Grammar checker for lmcode
+# Grammar checks for lmcode and the Tree-sitter parsers
 
 The normative grammar is `../../spec/grammar.ebnf` (W3C EBNF, subset documented in its
 header). The inner grammar covers released 0.2.444 plus mainline slice-3 return writes.
@@ -34,6 +34,34 @@ python3 tests/grammar/check_corpus.py --cpp-root "$LMCODE_CPP" --lmok-root "$LMC
 python3 tests/grammar/mutate_diff.py            # requires the explicitly selected compiler
 ```
 
-CI runs the corpus check on every push (`.github/workflows/grammar.yml`); the
-differential stays manual/scheduled because it needs a private compiler install and takes
-minutes.
+CI runs the corpus check on every push (`.github/workflows/grammar.yml`). The legacy
+Lark differential still requires its npm compiler install; S3 adds a separate Tree-sitter
+differential that runs on the public corpus in Actions and adds private roots only in local
+`--live` mode.
+
+## S3: Tree-sitter differential
+
+The S3 harness is colocated here because it compares both public grammar repos with
+one pinned compiler oracle and records divergences for the lmcode specification. It
+does not modify either grammar checkout. `tests/grammar/tree-sitter-pins.json` is the
+pin record; GitHub Actions checks out those exact grammar commits, installs
+`tree-sitter-cli@0.27.1` and `@lmctl-ai/lmctl@0.2.448` into a private npm prefix, and
+runs the gate plus a corrupted-grammar control.
+
+Run the public corpus locally with `LMCODE_CPP` and `LMOK` pointing at clean checkouts:
+
+```sh
+TREE_SITTER=/path/to/tree-sitter \
+TREE_SITTER_LMSCRIPT_ROOT=/path/to/tree-sitter-lmscript \
+TREE_SITTER_LMCODE_ROOT=/path/to/tree-sitter-lmcode \
+LMSCRIPT_BIN=/path/to/lmscript \
+LMCODE_CPP=/path/to/lmcode-cpp LMOK=/path/to/lmok \
+  python3 tests/grammar/tree_sitter_differential.py --json /tmp/tree-sitter-diff.json
+```
+
+For the full local source corpus, additionally set `MONO_ROOT` and `SKILLS_ROOT`
+and pass `--live`. The runner hashes/counts inputs for its report but stores no source
+text. It requires at least 500 seeded source and mutation documents. The gate checks
+accept/reject only; schema/type resolution and external `cli=` availability are not
+tree-sitter syntax contracts. Accepted differences must be listed in root
+[`DIVERGENCES.md`](../../DIVERGENCES.md).

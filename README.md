@@ -99,6 +99,14 @@ The [standard catalog](spec/std.md) names the 181-signature release and 206-sign
 C++ main catalogs and records their differing byte pins. The grammar includes mainline
 return writes; the release compiler differential covers the shared baseline only.
 
+The S3 grammar differential gate is in this shared specification repository at
+[`tests/grammar/tree_sitter_differential.py`](tests/grammar/README.md), not in either
+grammar repo. This keeps the two grammar pins and the npm compiler oracle together.
+It checks both Tree-sitter grammars against `@lmctl-ai/lmctl@0.2.448` and publishes
+only the public corpus in Actions. `DIVERGENCES.md` records the release/mainline and
+syntax-versus-checker boundaries; it does not turn grammar rejections of compiler-
+accepted source into accepted differences.
+
 ## CI and local verification
 
 [CI instructions](scripts/ci/README.md) describe private npm compiler installation,
@@ -108,7 +116,10 @@ The selector is workflow input compiler_version, then LMCODE_COMPILER_VERSION,
 then scripts/ci/compiler-version (0.2.444).
 
 CI compiles the documented language examples, parses the reference corpora with
-the formal grammar, checks generated standard signatures, and runs failing controls.
+the formal and Tree-sitter grammars, checks generated standard signatures, and runs
+failing controls. The local S3 mode also includes tracked mono and skills-scripts
+sources; public Actions cannot read those private repositories, so their text is
+never copied into this repo.
 The separate cross-runtime workflow snapshots runtime/sample main revisions and
 one resolved compiler version for five runtimes across five native platforms.
 It retains the existing C++ corpus home, refreshes disposable samples and reports

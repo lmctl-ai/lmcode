@@ -2,9 +2,9 @@ name: grammar
 on:
   push:
     branches: [main]
-    paths: [spec/grammar.ebnf, spec/grammar.md, tests/grammar/**, .github/workflows/grammar.yml]
+    paths: [spec/grammar.ebnf, spec/grammar.md, spec/tree-sitter-lmcode.md, README.md, DIVERGENCES.md, tests/grammar/**, .github/workflows/grammar.yml]
   pull_request:
-    paths: [spec/grammar.ebnf, spec/grammar.md, tests/grammar/**, .github/workflows/grammar.yml]
+    paths: [spec/grammar.ebnf, spec/grammar.md, spec/tree-sitter-lmcode.md, README.md, DIVERGENCES.md, tests/grammar/**, .github/workflows/grammar.yml]
   workflow_dispatch:
     inputs:
       compiler_version:
@@ -30,15 +30,28 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: lmctl-ai/lmcode-cpp
-          ref: aaa9088a542d43daf81aefb9b024fbb971825f3f
+          ref: 6ee3d62ea9b480aa6f42a592055233959f7f6162
           path: corpora/lmcode-cpp
           persist-credentials: false
       - name: Check out the lmok rule corpus
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: lmctl-ai/lmok
-          ref: f13cc8f7df75f87d631adfbcb99ba4b291e34272
+          ref: 128dc03224e95ed6671af81ed73f172f8233e7d3
           path: corpora/lmok
+          persist-credentials: false
+      - name: Check out the pinned Tree-sitter grammars
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/tree-sitter-lmscript
+          ref: ff301218f388f30fcf40cd63d235070c162aa283
+          path: corpora/tree-sitter-lmscript
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/tree-sitter-lmcode
+          ref: c9d5021cc98982f558937298e4add9a4f79c574a
+          path: corpora/tree-sitter-lmcode
           persist-credentials: false
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
         with:
@@ -62,3 +75,24 @@ jobs:
         run: |
           LMCODE_CPP="$GITHUB_WORKSPACE/corpora/lmcode-cpp" \
             .venv-grammar/bin/python tests/grammar/mutate_diff.py
+      - name: Install pinned npm oracle and Tree-sitter CLI
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tree-sitter-diff" --no-audit --no-fund \
+            @lmctl-ai/lmctl@0.2.448 tree-sitter-cli@0.27.1
+          (cd "$RUNNER_TEMP/tree-sitter-diff/node_modules/tree-sitter-cli" && node install.js)
+          echo "LMSCRIPT_BIN=$RUNNER_TEMP/tree-sitter-diff/node_modules/.bin/lmscript" >> "$GITHUB_ENV"
+          echo "TREE_SITTER=$RUNNER_TEMP/tree-sitter-diff/node_modules/.bin/tree-sitter" >> "$GITHUB_ENV"
+          echo "TREE_SITTER_LMSCRIPT_ROOT=$GITHUB_WORKSPACE/corpora/tree-sitter-lmscript" >> "$GITHUB_ENV"
+          echo "TREE_SITTER_LMCODE_ROOT=$GITHUB_WORKSPACE/corpora/tree-sitter-lmcode" >> "$GITHUB_ENV"
+      - name: Differential gate across both pinned grammars
+        env:
+          LMCODE_CPP: ${{ github.workspace }}/corpora/lmcode-cpp
+          LMOK: ${{ github.workspace }}/corpora/lmok
+        run: python3 tests/grammar/tree_sitter_differential.py --json "$RUNNER_TEMP/tree-sitter-diff-report.json"
+      - name: Corrupt-grammar negative control
+        env:
+          LMSCRIPT_BIN: ${{ runner.temp }}/tree-sitter-diff/node_modules/.bin/lmscript
+          TREE_SITTER: ${{ runner.temp }}/tree-sitter-diff/node_modules/.bin/tree-sitter
+          TREE_SITTER_LMSCRIPT_ROOT: ${{ github.workspace }}/corpora/tree-sitter-lmscript
+          TREE_SITTER_LMCODE_ROOT: ${{ github.workspace }}/corpora/tree-sitter-lmcode
+        run: python3 -m unittest discover -s tests/grammar -p 'test_tree_sitter_differential.py' -v
