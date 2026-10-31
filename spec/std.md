@@ -1,9 +1,11 @@
 # lmcode std — the standard catalog
 
-Status: current (catalog version 3, `lmcode_std_v3`, 182 signatures). The catalog is the standard
+Status: current (catalog version 3, `lmcode_std_v3`). The released 0.2.444 compiler bundle has
+182 signatures; current lmcode-cpp `main` has 206 signatures, including the return helpers below.
+The catalog is the standard
 declaration surface every `_lmcode_` block type-checks against: the compiler merges it into the
-effective schema by default (`spec/schema.md` §"The implicit standard merge"), and every default
-SDK registry implements it. Runtime semantics belong to the SDKs; this document pins the
+effective schema by default (`spec/schema.md` §"The implicit standard merge"). Default
+SDK registries target this surface; return-sink adoption varies by port (slice 2 is in progress). Runtime semantics belong to the SDKs; this document pins the
 declarations and the pinning itself.
 
 Normative sources:
@@ -23,24 +25,28 @@ are listed at the end.
 
 ## Ownership and drift pinning
 
-`lmcode-cpp` owns the catalog. The compiler bundles a **byte-identical** copy
+`lmcode-cpp` owns the catalog. The compiler bundles a copy
 (`lmscript/lmcode-std.schema.json`, statically imported by `dsl-std.ts`, so installed packages
 need no source checkout) and pins it by digest: `LMCODE_STD_SHA256` is the SHA-256 of the exact
-schema bytes. Every SDK carries its own byte-identical copy and a `std.lock`:
+schema bytes. SDKs carry a catalog copy and a `std.lock`; verify the digest against the named
+runtime revision before treating a copy as compatible:
 
 ```text
 schema=std/lmcode-std.schema.json
 version=3
-sha256=a530a09fe405c16569e39b1de2957f364999e85960c8543830cddb45009adb73
+sha256=1defd1be67bf11cf1780f7d890059cd2ac6fd506a7b7fa578e31b5ef124aa221
 ```
 
 (`std.lock` at the canonical root is `lmcode-cpp/std.lock`; the schema file itself records
-`"name": "lmcode_std_v3"`.) The canonical sha256 today is the one shown, matching the compiler
-pin. A
+`"name": "lmcode_std_v3"`.) The C++ main sha256 today is the one shown. The compiler pin is
+separately recorded below because current compiler and C++ serialization differ. A
 catalog change is one edit in `lmcode-cpp` plus a lock refresh everywhere; no SDK regenerates the
 file locally, and the bundled compiler copy is never authored separately.
 
-The catalog is **not** part of a host schema's identity: the merge happens after parsing and the
+Current C++ main has 206 signatures (24 return signatures were added within v3); the published
+0.2.444 bundle remains the 182-signature release catalog. The lmscript source at `aa6fecb5` pins
+`af6b9f51735238abe18497a707671aa071df8213d991e084b1880f3c12403f60`, so serialized bytes and overload ordering are not byte-identical to the C++
+`1defd1be…` schema. Treat these as compatibility pins to verify together. The catalog is **not** part of a host schema's identity: the merge happens after parsing and the
 bytecode hash covers the raw host schema bytes only (`spec/schema.md` §"Binding"), so a new
 catalog version does not invalidate existing bytecode. Standard signature additions alone are not
 a DSLB format revision.
@@ -51,19 +57,21 @@ a DSLB format revision.
 |---|---|---|---|
 | v1 | `lmcode_std_v1` | 72 | string, math, collection and file declarations (42 free-function overloads, 30 collection methods; lmcode-std R01) |
 | v2 | `lmcode_std_v2` | 171 | the data catalog: containers (Stack/Queue/PQ), insertion-ordered maps and `Json` |
-| v3 | `lmcode_std_v3` | 182 | the v3 byte codecs (`str_base64_*`, `str_hex_*`) and map `keys()`/`values()` snapshots, plus `template_render` |
+| v3 release (0.2.444) | `lmcode_std_v3` | 182 | the v3 byte codecs, map snapshots, and `template_render` |
+| v3 current `lmcode-cpp` main | `lmcode_std_v3` | 206 | release catalog plus 24 `lmcode_return_*` overloads |
 
 v1's 72 and v2's 171 are recorded in `requirements/lmcode-std.md` R01 and
 `requirements/lmcode-std-v3.md` R02, and v2's count is verifiable from the lmcode-cpp history
 (`344c4db`, name `lmcode_std_v2`, 171 signatures). v3 first pinned exactly ten new signatures —
 four byte codecs and six map snapshots — for 181 (`f252243`, matching the v3 requirements'
 "181 total, assuming unchanged v2's 171"). `template_render` was then added within v3
-(`f8b6be5`, 2026-10-29) without a name bump, giving the current 182 — the count the canonical
-schema, the compiler bundle and the generated inventory agree on.
+(`f8b6be5`, 2026-10-29) without a name bump, giving the released 182. Current C++ main
+subsequently added 24 return overloads, giving 206.
 
 ## The groups
 
-182 canonical signatures, grouped as in `spec/language.md` §10:
+The released bundle has 182 signatures; current C++ main has 206 (the additional 24 are return
+helpers). The groups below describe the current catalog:
 
 | Group | Contents | Signatures |
 |---|---|---|
@@ -74,10 +82,25 @@ schema, the compiler bundle and the generated inventory agree on.
 | json | `json_parse(string) -> Json` and the immutable `Json` navigation: `kind/len/at/get/has/keys/as_*`, `to_json` | 12 |
 | collections | typed lists (`IntList`, `FloatList`, `StrList` + `join`) and insertion-ordered maps (`IntMap`, `FloatMap`, `StrMap`, with `keys`/`values` snapshots), plus their constructors | 58 |
 | containers | `Int/Float/Str` × `Stack`, `Queue`, `PQ` (min priority first, insertion-order ties), plus constructors | 69 |
+| return | `lmcode_return_null`, `lmcode_return_set`, `lmcode_return_put`, and `lmcode_return_put_null` overloads | 24 |
 
 Testing helpers (`print`, `assert_close`) are **not** part of the catalog: they stay explicit host
 declarations (lmcode-std R02), which is why the conformance and sample hosts register them
 themselves.
+
+## Return helper semantics (current main)
+
+The 24 `lmcode_return_*` declarations are available only when the host binds an invocation-owned
+result sink. `lmcode_return_set(value)` replaces the result; `lmcode_return_null()` replaces it
+with null; `lmcode_return_put(path, value)` assigns an owned JSON value at a top-level field; and
+`lmcode_return_put_null(path)` assigns null. A field assignment requires the current result to be
+null or an object, and later writes overwrite an existing key without changing its insertion
+position. Supported values are the scalar, `Json`, and typed list/map overloads in the generated
+inventory. Without a sink, helpers raise `lmcode return: no result sink`; invalid values raise
+`lmcode return: invalid JSON value at PATH: REASON`, and invalid field assignment raises
+`lmcode return: field assignment requires object or null`. Hosts reset the sink before the next
+logical program and frame it only after body, entry, and application validation succeed; failures
+must not emit a return frame.
 
 Shared semantics (from the docs metadata's notes): all strings are raw bytes — lengths and
 offsets are byte-based, NUL and invalid UTF-8 survive; catalog failures raise RUN_HOST, file
@@ -93,24 +116,19 @@ renderer over a `Json` context (`<path>`, `<items:{item|body}; separator=", ">`,
 ## `template_render` status
 
 Declared in the canonical v3 schema as `fn template_render(string, Json) -> string` and documented
-in `lmcode-std.docs.json`; the compiler bundle carries the identical declaration. Implementations:
+in `lmcode-std.docs.json`; the compiler bundle carries the same declaration. Implementations:
 
-- **lmcode-cpp: implemented** (`stdlib/json.hpp`, since `f8b6be5` 2026-10-29, with the conformance
+- **lmcode-cpp: implemented** (`stdlib/json.hpp`, current main `aaa9088`, with the conformance
   vector `data-text-template`).
-- **lmcode-rust, lmcode-go, lmcode-java, lmcode-csharp: not implemented** in the checked clones —
-  no registration exists there, so a program whose import table names
-  `fn template_render(string, Json) -> string` compiles anywhere but is refused at load with
-  LOAD_UNBOUND on those SDKs.
+- **lmcode-rust: implemented** at checked revision `8a4903e`; **lmcode-go: implemented** at
+  checked revision `b5c1a8e`; **lmcode-java: implemented** at current revision `4bd50ca`; and
+  **lmcode-csharp: implemented** at current revision `2f914ee` (each registers the function).
 
-Note: the 2026-10-30 consensus design (`lmcode-return-and-reverse-templates-consensus.md`, E4 and
-slice 0a) states that searches of the five local SDK sources found no `template_render`
-implementation and schedules the C++ implementation as future work. That premise is already stale
-for C++: `lmcode-cpp` main has implemented it since 2026-10-29. The four other SDKs remain
-genuinely pending.
+The 2026-10-30 consensus design's inventory is historical and predates the current registrations; do not use it as an availability matrix.
 
 ## The signature list
 
-`spec/std-signatures.md` is the full 182-signature list with per-signature summary and error
+`spec/std-signatures.md` is the full current 206-signature list with per-signature summary and error
 columns. It is **generated, not hand-written**:
 
 ```sh
@@ -128,11 +146,12 @@ the new canonical files and commit the result. Drift checking:
 python3 scripts/gen-std-signatures.py SCHEMA --docs DOCS --check   # exit 1 with a diff on drift
 ```
 
-The generated file groups signatures by the docs metadata's `area` column; that split differs from
+The generated file currently contains 206 signatures from `lmcode-cpp` main; the released 0.2.444
+bundle remains 182. It groups signatures by the docs metadata's `area` column; that split differs from
 the table above only at the boundaries — `str_split` is filed under `collections` (it returns a
 `StrList`), and the `IntMap`/`FloatMap` `keys()`/`values()` snapshots are filed under `containers`
 while their `StrMap` counterparts stay under `collections`. The table above follows
-`spec/language.md`; both count the same 182.
+`spec/language.md`; count the release and main catalogs separately.
 
 ## Known disagreements
 
@@ -141,8 +160,10 @@ while their `StrMap` counterparts stay under `collections`. The table above foll
   is available"). The compiler has injected the catalog by default since the lmcode-std track
   landed; the README's merge instructions describe a pre-injection workflow. The schema and
   `std.lock`, not the README, are authoritative.
-- `requirements/lmcode-std-v3.md` R02 estimates 181 for v3; the actual v3 is 182 after
-  `template_render` joined within the version (`f8b6be5`). `spec/language.md` §10 already records
-  this; the catalog is authoritative.
-- The consensus document's "no SDK implements template_render" premise is stale for C++, as
-  detailed above.
+- `requirements/lmcode-std-v3.md` R02 estimates 181 for v3; the released v3 is 182 after
+  `template_render` joined within the version (`f8b6be5`), while current C++ main is 206 after
+  the return overloads. `spec/language.md` §10 already records the release count; the catalog is
+  authoritative.
+- The consensus document's "no SDK implements template_render" premise predates the current
+  C++, Go, Rust, Java, and C# registrations; the named revisions in the status table above are
+  authoritative for availability.
