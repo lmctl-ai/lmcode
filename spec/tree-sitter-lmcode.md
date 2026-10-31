@@ -9,17 +9,17 @@ queued-heredoc external scanner and generated C; native consumers compile
 src/parser.c together with src/scanner.c. No runtime SDK or sample layout changes
 are required. lmcode-cpp remains the source of its existing canonical suites.
 
-Initial grammar revision: 2218b71355589e6289c19ad5994b9719d77e92f8. It was checked
+Validated grammar revision: c9d5021cc98982f558937298e4add9a4f79c574a. It was checked
 against mono a9df5a8b793ddc90f572d5c5be5800ba8dc448dc, lmok
 f13cc8f7df75f87d631adfbcb99ba4b291e34272, and lmcode-cpp
 df286aced04cca0767d61a1468867fbb3c20a6db. SOURCE-PINS.json and the fixture manifest
 record source/body hashes and original line numbers.
 
-Coverage: 38 tree-sitter corpus cases, 127 pinned real bodies (mono examples,
+Coverage: 39 tree-sitter corpus cases, 127 pinned real bodies (mono examples,
 lmok rules and C++ sample programs), 21 malformed inputs, incremental UTF-8 edits,
-and six production-copy failure controls. Actions runs generation freshness,
-scanner compilation and the suites on Ubuntu/macOS. The initial successful run is
-[41171799460](https://github.com/lmctl-ai/tree-sitter-lmcode/actions/runs/41171799460).
+and seven production-copy failure controls. Actions runs generation freshness,
+scanner compilation and the suites on Ubuntu/macOS. The validated successful run is
+[41172488883](https://github.com/lmctl-ai/tree-sitter-lmcode/actions/runs/41172488883).
 
 The grammar recognizes typed functions, annotations/implements, control flow,
 qw/qi/qf, map entries, queued raw/dedented heredocs, parsed LMScript splices, and
