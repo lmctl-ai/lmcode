@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix='tutorial ',dir=ROOT) as directory:
             built=subprocess.run([compiler,'--no-preflight',str(source),str(binary)],env=env,capture_output=True,timeout=60)
             if built.returncode: raise SystemExit('Tutorial compilation failed: '+repr(built))
             if first_binary is None: first_binary=binary
-            record=json.loads(expected.splitlines()[-1])
+            record=json.loads(next(line for line in expected.splitlines() if line.startswith('{"ok":')))
             code=0 if record.get('ok') else (4 if record.get('phase')=='app' else 3)
             run=subprocess.run([str(host),'--dsl',str(binary)],env=env,capture_output=True,timeout=30)
             if (run.returncode,run.stdout,run.stderr)!=(code,(expected+'\n').encode('utf8'),b''):

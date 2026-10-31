@@ -91,11 +91,15 @@ Output — pinned verbatim:
 ```text
 hello from lmcode: 7
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
-The first line is the program's trace (whatever `print` wrote); the last line is the host's
-**result record** — one JSON line reporting success plus the host's own summary (here the shop's
-final ledger state). The record format and exit codes are `spec/host-protocol.md` §"The result
+The first line is the program's trace (whatever `print` wrote). The JSON **result record**
+reports success plus the host's own summary (here the shop's final ledger state). Current
+C++ sample main then emits a terminal return frame. These programs make no return-sink
+writes, so its value is `null`; the published compiler still treats the block as opaque. The record format and exit codes are `spec/host-protocol.md` §"The result
 record"; this run exited 0.
 
 Instead of `cli=`, a block may name a schema **file** with `schema="FILE"` (resolved like an
@@ -116,6 +120,9 @@ Output — pinned verbatim (compiled and run exactly as above):
 ```text
 hello via schema file
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 Both forms bind the bytecode to the schema's SHA-256, so a program compiled one way cannot run
@@ -148,6 +155,9 @@ Output — pinned verbatim:
 cents 1299 with tax 1396.425
 int math 5
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 ### Wrapping int64 (§4, §5)
@@ -170,6 +180,9 @@ Output — pinned verbatim:
 9223372036854775807
 -9223372036854775808
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 The one arithmetic failure is a zero divisor: a *literal* zero is a compile error, a computed zero
@@ -196,6 +209,9 @@ Output — pinned verbatim:
 LMCODE has 6 chars
 a+b+c
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 ### Lists and maps: `qw()` and `%(...)` (§3.5, §3.6, §6)
@@ -225,6 +241,9 @@ name alpha
 name beta
 name gamma
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 (`qi(...)` and `qf(...)` are the int and float word-literal forms; `json <<TAG` heredocs build
@@ -257,6 +276,9 @@ Output — pinned verbatim:
 total 13
 thirteen
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 `range(start, end)` counts up by 1 and excludes `end`; `switch` takes int, string or enum
@@ -283,6 +305,9 @@ Output — pinned verbatim:
 ```text
 fee 103
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 Because calls are inlined, recursion is impossible — there is no call stack in the bytecode. The
@@ -330,6 +355,9 @@ Output — pinned verbatim:
 floor 3 pow 1024
 limit 3
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 ## 4. Talking to the host
@@ -364,6 +392,9 @@ balance 2000
 plus 250 1500
 dollars
 {"ok": true, "result": {"balance": 2000, "entries": 1, "note": "", "entries_called": 0}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 What just happened, per the schema rules in `spec/schema.md`:
@@ -411,6 +442,9 @@ item costs 250
 item costs 375
 entry score_total = 7
 {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 4}}
+LMCODE_RETURN_BEGIN
+null
+LMCODE_RETURN_END
 ```
 
 The body ran first (`body ran`), then the host dispatched the entries in source order: the `@item`

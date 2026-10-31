@@ -44,6 +44,9 @@ export PATH="$PWD/build:$PATH"
 lmscript /tmp/hello.lms && ./build/lmcode-cpp-sample --dsl /tmp/hello.dslb
 # prints: hello from lmcode
 # then:   {"ok": true, "result": {"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
+#         LMCODE_RETURN_BEGIN
+#         null
+#         LMCODE_RETURN_END
 ```
 
 The full walkthrough with pinned outputs is [guides/writing-lmcode.md](guides/writing-lmcode.md).
