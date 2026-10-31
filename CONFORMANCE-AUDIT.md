@@ -29,9 +29,12 @@ local isolation. Hostile vectors change decoded operands/container fields rather
 than finding opcode-looking bytes inside constants.
 
 The original corpus already exercised all 44 defined opcodes and 18 MATH IDs;
-new counts are not a claim that more opcodes were needed. Import audits reach all
-182 standard signatures and 45 host signatures. Import reachability does not
-prove the full semantic contract of every operation. The effective schema has
+new counts are not a claim that more opcodes were needed. At audit baseline, import audits reached
+182 standard signatures and 45 host signatures. Concurrent ResultSink work adds
+24 standard imports in the reference SDK; shared sample adoption is still pending
+and its audit correctly rejects those unexercised imports. They are not counted
+as sample-ready by this extension. Import reachability does not prove the full
+semantic contract of every operation. The effective schema has
 overlapping declarations; these category counts must not simply be added.
 
 Production-copy controls must fail: omitted vector families, missing i64 wrap,
