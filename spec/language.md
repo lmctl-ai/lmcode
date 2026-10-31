@@ -1,5 +1,12 @@
 # lmcode — language reference
 
+**Execution amendment:** opaque program construction, explicit `run_lmcode` and
+`lmcode_build` supersede prior block-end execution/export forms. Their language
+implementation is R4–R5 (in progress until adopted on mono main); examples below
+that document the released 0.2.444 baseline are historical syntax, not a new
+compatibility API. The C++ R1 invocation-envelope/optional-result contract is
+[normative here](host-protocol.md). R8 coordinates final runnable examples.
+
 Status: released compiler 0.2.444 baseline, with mainline return additions explicitly marked. This is the reference for people who **write** lmcode source — the language inside
 `_lmcode_ ... end _lmcode_` blocks. It is not a tutorial, and it does not cover how runtimes load or
 execute the compiled output; the wire format and loader rules live in `spec/bytecode.md`, the test

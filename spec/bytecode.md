@@ -320,10 +320,12 @@ Located errors (S5): when the region's line table covers the faulting pc, the me
 yields `dsl line N: MESSAGE`. The SDK JSON helpers add `"line"` and `"column"` fields. Load errors
 have no location.
 
-The standard CLI result line (the `report_ok` / `report_error` / `report_app_failure` helpers,
-R26/S0′): exactly one JSON line on stdout, `{"ok": true, "result": <host JSON>}` or
-`{"ok": false, "phase": "load"|"run"|"app", "code": ..., "message": ...}`; exit code 2 is the
-compiler's (lmscript), 3 is host load/run, 4 is APP_FAIL.
+The invocation envelope is a native host protocol, independent of VM/HALT
+results. Amendment R1 replaces unframed report helpers with per-slot collection
+and one success/failure frame per command; builder payloads retain add order.
+See [the normative wire and exit contract](host-protocol.md#exactly-one-terminal-envelope).
+No bytecode version, opcode, import count or encoded source-location change is
+implied; controlled host failures preserve the existing VM diagnostic literals.
 
 ## Version policy
 

@@ -1,144 +1,204 @@
-# Host CLI protocol
+# Native host protocol and invocation envelopes
 
-Status: the host option family is current as of 2026-10-31. Compiler mono main
-`7a1829a1` and the five SDKs/eight samples use the renamed flags below with no
-aliases or fallback. DSLB magic and internal `.dslb` filenames are unchanged.
-Use a compiler built from that mainline or a later release containing the rename;
-older published compilers such as 0.2.444 cannot discover or execute these hosts.
-The five SDKs provide invocation sinks and the eight samples emit terminal frames.
-`load_schema` and executing blocks landed at mono `0bc80277`.
+Status: the C++ reference implements amendment R1. Compiler result metadata (R2),
+other runtime collectors (R3), explicit execution/builders (R4–R5), and real host
+adapters (R6–R7) land separately. No release during mixed protocols. Earlier
+bare-payload/per-program framing is superseded, with no compatibility fallback.
+Public execution examples become runnable only with coherent compiler/SDK/host pins.
 
-A host is a native program that loads lmcode bytecode (`DSLB` magic) and runs it. The compiler never runs programs;
-the host never compiles them. They meet twice: at compile time the host prints its schema (the
-R42 query), and at run time the host executes the bytecode file it is handed and reports on stdout
-with a host-defined sequence of trace, result, and (when supported) return-frame records.
+## Host options
 
-Normative sources:
+`HOST --lmcode-schema [--json]` discovers the host's schema; JSON mode prints its
+exact bytes. `HOST --lmcode-signatures` prints sorted canonical signatures.
+`HOST --lmcode FILE` executes compiled lmcode. Standard multi-program adapters
+accept repeated `--lmcode FILE` pairs; custom roles may use other file flags.
+Retired options are errors, never aliases. Introspection returns before reading
+invocation execution metadata. Internal `.dslb` filenames and DSLB v6 stay unchanged.
 
-- Host flag standard and schema query: `lmscript/durable-memory/requirements/dsl-bytecode.md`
-  R42/R45; the compiler side is `lmscript/lmscript.ts` `queryHostSchema` (see
-  `spec/schema.md` §"Where the compiler gets the schema").
-- Result-record and exit-code convention (S0′, R26):
-  `lmscript/durable-memory/design/dsl-language.md` §8; the SDK helpers are
-  `lmcode-cpp/include/dslvm.hpp` (`report_ok`, `report_error`, `report_app_failure`).
-- Reference host: `lmcode-cpp-sample/src/main.cpp`; a larger multi-command host:
-  `lmok/cpp/main.cpp`. The end-to-end contract is pinned by `lmcode-cpp/sample-suite/CONTRACT.md`
-  (see `spec/conformance.md`).
-- Loader error codes and located run errors: `spec/bytecode.md`.
-- Return sink/frame: the normative contract is included below. Hosts retaining the legacy
-  result-only contract must identify that compatibility mode.
+The SDK is a library: loading/running/calling a program never prints an envelope
+implicitly. The adapter owns execution, entry selection, application validation,
+drainage and the one terminal write. Bytecode remains trusted host code.
 
-## Flags
+## Private invocation metadata
 
-The previous flag family is rejected as unknown input before file loading or
-network effects. There are no compatibility aliases.
-
-Every lmcode host CLI offers these flags. A host with several schemas exposes one subcommand per
-schema and every lmcode flag sits after it: `lmor cpsat --lmcode F`, `lmor cpsat --lmcode-schema --json`
-(R42). stdout is the protocol channel and is written as LF bytes on every platform (the sample
-hosts set `_O_BINARY` on Windows).
-
-| Invocation | Behavior | Exit |
-|---|---|---|
-| `HOST --lmcode FILE [FILE …]` | Host-specific arity applies. The C++ sample accepts exactly one file. lmok validates and loads all supplied files before running the first, then stops at the first failure. | 0, 3 or 4 |
-| `HOST --lmcode-schema --json` | Print the exact embedded `dsl.schema` JSON bytes and nothing else. This output is what the compiler compiles against and hashes. | 0 |
-| `HOST --lmcode-schema` | A human-readable summary. The form is host-chosen: lmok prints its registry's canonical signature list; `lmcode-cpp-sample` prints the same exact schema bytes as `--json`. | 0 |
-| `HOST --lmcode-signatures` | Print the registry's canonical signatures, one per line, sorted: `context NAME: Type`, `fn NAME(T1, T2) -> R`, `method Type.name(T1) -> R`. Interfaces are never listed (a registry never implements one, R48). This is the drift check against `lmscript --lmcode-signatures SCHEMA`. | 0 |
-| `HOST --version` | Print the release version as the first stdout line with exactly one `MAJOR.MINOR.PATCH[-PRE][+BUILD]` token (`lmcode-cpp-sample 0.2.0`); `v0.3.0` and `0.3.0` are the same version, a `+BUILD` suffix is ignored (R45). Required of any host installed with `install=…@latest`, recommended for every host. | 0 |
-| `HOST --notices` | Print the embedded third-party license notices (lmok ships `notices_embedded.hpp` for this). Observed in lmok; **not** part of the R42 flag standard and absent from the sample hosts — treat it as a convention for published binaries, not a conformance requirement. | 0 |
-
-Anything else — no arguments, unknown options, missing values — is a usage error: exit 2 with the
-JSON record `{"ok": false, "phase": "cli", "code": "CLI_USAGE", "message": "usage: …"}` on stdout
-in the SDK-helper style where that host uses the helper. lmok prints its longer usage text on
-stderr for missing/invalid `--lmcode` arguments and for its non-lmcode subcommands; this is a host CLI
-usage path, not a result-record claim.
-
-## The result record (one JSON line per program)
-
-Every `--lmcode` execution prints, on stdout, a result record after its trace lines. Return-capable
-hosts append the terminal frame described below, so that frame—not the result record—is the final
-stdout line:
-
-1. the program's **trace lines** first — whatever the host's output functions write (the sample
-   hosts' `print(string)`, lmok's `println`), one line each, in execution order; then
-2. exactly one **result record** line plus LF (the final protocol line for legacy hosts):
+LMScript's execution owner supplies an absolute `LMCODE_INVOCATION_FILE` in the
+child environment, replacing an inherited value. It names private UTF-8 JSON:
 
 ```json
-{"ok": true, "result": {"balance": 750, "entries": 3, "note": "", "entries_called": 4}}
-{"ok": false, "phase": "load", "code": "LOAD_SCHEMA_MISMATCH", "message": "sample schema mismatch"}
-{"ok": false, "phase": "run", "code": "RUN_ERROR", "message": "dsl line 4:2: int division by zero", "line": 4, "column": 2}
-{"ok": false, "phase": "app", "code": "APP_FAIL", "message": "ledger: negative balance"}
+{"version":1,"mode":"builder","parts":[{"index":0,"file":"/private/part-0.dslb"},{"index":1,"file":"/private/part-1.dslb"}]}
 ```
 
-- `{"ok": true, "result": …}` — the program loaded and ran; `result` is host JSON (the sample
-  hosts compose the object shown; `report_ok()` with no argument writes `"result": null`).
-- `{"ok": false, "phase": "load"|"run"|"app", "code": …, "message": …}` — `phase` is where the
-  failure happened; `code` is one of the SDK codes `LOAD_BAD_BYTECODE`, `LOAD_SCHEMA_MISMATCH`,
-  `LOAD_UNBOUND` (load), `RUN_ERROR`, `RUN_HOST` (run) or `APP_FAIL` (app). A located run error
-  (S5) adds numeric `"line"` and, when known, `"column"` fields, and its `message` carries the
-  `dsl line N:C: ` prefix. Load errors have no location.
-- The record is the last line before any return frame. Legacy hosts without return support make it
-  the last stdout line. The sample suite compares exact stdout bytes and requires an empty stderr
-  for every case (`spec/conformance.md`).
-- With several `--lmcode` files, a batching host must document ordering and preloading. lmok loads
-  all files before running the first and then stops at the first failure; the sample hosts accept
-  exactly one file. A missing `--lmcode` value is a CLI usage error (lmok prints usage on stderr).
-- The host's own application validation is distinct from a VM failure and runs after it: the
-  sample hosts report a negative final ledger balance as `phase: "app"`, `APP_FAIL`, exit 4.
+Only version, mode and parts are permitted. Mode is single or builder. Parts is
+nonempty, with only index/file members; indices are contiguous zero-based add
+order. Single mode requires one part. File strings are absolute on the executing
+OS, unique, UTF-8 and NUL-free. Safe integral JSON number tokens denote indices
+and version; booleans/fractions/unsafe numbers do not.
 
-## Exit codes
+The host supplies parsed file occurrences unchanged. They must be a complete
+permutation of manifest files: reject missing/extra/duplicate registrations before
+dispatch. Match exact strings, without path normalization, shell parsing, content
+deduplication or raw argv-position inference. A parser may reorder role options;
+the metadata still determines canonical indices. It does not supply schema or
+result contracts: those remain authoritative host-owned metadata.
 
-| Code | Meaning |
-|---|---|
-| 0 | Success (`--lmcode` run completed; every inspection flag answered). |
-| 2 | The caller's fault: a compile error in lmscript (the compiler owns this code; hosts never see the source), or a host CLI usage error (`phase` `cli`, `CLI_USAGE`). |
-| 3 | Host load or run failure: the record's `phase` is `load` or `run`. |
-| 4 | Application failure after VM success: `phase` `app`, `APP_FAIL`. |
+Without the environment descriptor, standalone CLI occurrences define equivalent
+metadata: one is single, several are builder mode in CLI occurrence order. Duplicate
+filenames are legal in that standalone form, each a distinct slot. Preserve the
+occurrence list instead of a filename map. A one-slot builder needs the explicit
+mode, even when its program returns a list.
 
-The convention is the SDK's (`report_error` returns 4 for `APP_FAIL`, 3 otherwise; `report_ok`
-returns 0) and the R26 allocation: 2 compile / 3 host / 4 application. `spec/bytecode.md` §"Loader
-error codes and result convention" has the code taxonomy.
+This is execution correlation, not a host-side builder or an input-value ABI.
+There is no public manifest option, script path getter, export or debug flag.
+Each language execution uses fresh metadata; native callers must not forward a
+stale descriptor to a nested execution. The C++ reader does not mutate its
+process environment. The language owner retains files until the child closes,
+then cleans them after drainage; R4–R5 implement that lifecycle.
 
-## Return sink and frame contract
+## Optional per-program result contract
 
-The compiler main line lowers `$return` writes to `lmcode_return_*` imports, and the C++/lmok hosts
-provide the invocation sink and terminal frame. The published 0.2.444 compiler lacks `$return` lowering, but frame behavior is selected by
-the host: lmok emits it even for programs compiled with that release. The C++ sample at
-`be54c73` retains legacy result-only behavior. Block execution and `load_schema`
-are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6).
+Schema 2 may declare:
 
-- On success a return-capable CLI prints its traces and `{"ok", "result"}` record as today, then exactly
-  `LMCODE_RETURN_BEGIN\n<compact JSON value>\nLMCODE_RETURN_END\n`. The frame is **always**
-  printed on success (a `null` payload when the program wrote nothing) and is **terminal**:
-  `END` plus LF is the final stdout, marker lines are reserved in preceding stdout, and escaped
-  marker/newline text inside JSON strings is ordinary data.
-- The frame is emitted only after host dispatch *and* application validation succeed. Exit 2/3/4
-  are unchanged; any nonzero exit or signal defeats the frame, and a failed invocation emits none.
-  A CLI may process multiple programs with one frame each; lmscript invokes exactly one and
-  requires exactly one.
-- Numeric contract: mathematical integers must fit ±9007199254740991 (integral float values and
-  exponent-form tokens included); fractional finite values are binary64. Float serialization uses
-  the **shortest round-trip** representation — explicitly *not* the host's `str(float)`/`%.15g`
-  machinery (`0.1+0.2` prints `0.30000000000000004`, never `0.3`). The consumer validates raw
-  number tokens before JSON decoding (a plain `JSON.parse` that collapses `9007199254740992` and
-  `9007199254740993` is a protocol bug), rejects nonfinite and unsafe-integral values, and treats
-  underflow of a nonzero token to zero as an error. Duplicate object keys in protocol JSON are
-  invalid.
-- Sink lifecycle is per logical invocation: bind the sink and reset it once before the body, retain
-  the same root through the selected entry calls, then reset it before the next program. A body
-  and its entries therefore share ownership; an entry does not receive a fresh root. Failed
-  invocations emit no frame and leave no stale value for the next invocation.
-- `lmcode_return_set(value)` owns and replaces the root; `lmcode_return_null()` resets it to null. Field writes
-  (`lmcode_return_put`/`put_null`) require the current root to be null or an object; attempting a
-  field write after a scalar or list root is an error. A typed map is copied as a JSON object
-  and accepts subsequent field writes. Object keys are UTF-8 strings; writing
-  an existing key replaces its value without changing insertion order, while a new key appends.
-  A root field value is copied into the sink, so later VM/arena mutation cannot change the frame.
-- The lmcode-facing overloads accept null, bool, string, int, float, `Json`, and the homogeneous
-  `StrList`/`IntList`/`FloatList`/`StrMap`/`IntMap`/`FloatMap` values registered by the host.
-  `Json` may contain recursive JSON arrays/objects; lmcode list/map values remain homogeneous and
-  may be empty when constructed with a typed constructor. Mixed/nested structures use `Json`;
-  unsupported opaque objects are rejected by the type checker. Numeric validation follows the rules above. Reverse-template extraction uses the same
-  sink ownership and failure rules.
-- `savedsl`, `dsl_cli`, and the `_dsl_` spelling remain compatibility names until the eventual
-  cutover; this section does not claim block execution or schema loading.
+```json
+{"dsl.schema":2,"name":"scores","types":{},"functions":{},"context":{},"result":{"type":"IntMap","nullable":false}}
+```
+
+Type is required and is exactly null, bool, int, float, string, Json, StrList,
+IntList, FloatList, StrMap, IntMap or FloatMap (JSON string spellings). Only nullable
+is optional; it defaults false and must be boolean. Type null forbids the nullable
+key, even false. Unknown result keys/types are schema errors. No declaration
+permits any valid JSON, including null. There are no handle, enum, record, union
+or general JSON Schema declarations here.
+
+Known scalar/collection writes match the contract; int fits float and
+IntList/IntMap fit FloatList/FloatMap without converting values. No string/number,
+bool/number or collection coercion is introduced. Json is JSON-wide: it permits
+supported JSON-native shapes without conversion. A Json input with unknown shape
+defers narrower checks to runtime. Runtime JSON integer shapes are safe
+mathematical integers, independent of decimal/exponent spelling.
+
+Field writes require a map/Json result and retain homogeneous map element checks.
+Root nullable permits root null, not null elements of homogeneous maps/lists.
+Json may contain nested nulls. Initial/reset null is unfinished construction state,
+allowing the first field write into a nonnullable map; explicit null and completion
+validate. An unwritten nonnullable result fails at completion, not by a static
+proof of all host-selected paths.
+
+Copies validate atomically on writes and at completion. Failure leaves the prior
+sink unchanged. Contract mismatch is RUN_HOST with the literal form
+`lmcode return: result type mismatch at PATH: expected T; got K`; PATH is a JSON
+Pointer (empty at root), escaping slash/tilde. Contract schema errors use the native
+LOAD_BAD_SCHEMA code; this is not a new bytecode-verifier instruction/error branch.
+The original schema bytes remain the hash authority; standard merging retains the
+host-owned result metadata. The contract applies to each slot, never its aggregate.
+
+The 24 existing `lmcode_return_*` signatures remain unchanged. Writes do not exit
+the program or replace entry HALT values. Values are deep owned copies, independent
+of source mutation and VM arenas. Existing strict UTF-8, cycle/handle refusal, safe
+integer/raw-token checks, finite numbers, nonzero-underflow refusal and negative
+zero normalization remain in force. Binary64 uses shortest-round-trip output;
+`0.1 + 0.2` is **0.30000000000000004**, not a legacy precision-limited display value.
+
+## Per-slot native lifecycle
+
+C++ `InvocationResults::from_command(parsed_files)` creates the collector;
+`registrations()` returns parser-order `(file,index)` records. For each program:
+
+1. Load against the authoritative host schema and parse its ResultContract.
+2. `select(index,registry,contract)` binds that slot's fresh sink before its body.
+3. Run the body and the host's selected entries with their actual arguments.
+4. Reselect active slots for interleaving without resetting their state/contract.
+5. `complete(index)` validates, snapshots and seals the slot.
+
+A sealed sink refuses writes, reset, selection and second completion. A completion
+validation error latches its slot/run failure before rethrowing. Selecting another
+contract for an active slot is an error. Next invocation creates new sinks. Keep
+registry/collector lifetimes and access synchronized: serialize collector calls;
+parallel VM work needs separate slots/registries and must drain before writing.
+Registry copies share their standard runtime and are not independent containers.
+
+Execution order may differ from add order, and host state may remain shared.
+Results always use canonical add indices. Two programs writing the same field
+remain separate objects. Successful aggregation requires all slots completed;
+a skipped slot is not silently null. A completed no-write slot yields null only
+when its contract permits it.
+
+`fail(index_or_none,phase,error)` latches the first observed failure and association.
+Stop starting work after failure, drain already-started work and retain that first
+failure; effects already performed are not rolled back. Active work may be selected
+again for drainage, but new slots cannot start. Global application validation must
+finish before `write_frame(out)`; report its failure with no slot index. The collector
+cannot validate domain state that the host has not supplied.
+
+`write_frame(out)` finalizes once and returns 0/2/3/4. Global
+`failure_frame(out,phase,error)` covers errors before collector creation; return
+its status immediately. Sink-only frame and unframed report helpers are removed.
+
+## Exactly one terminal envelope
+
+Single success:
+
+```text
+LMCODE_RETURN_BEGIN
+{"ok":true,"result":0.30000000000000004}
+LMCODE_RETURN_END
+```
+
+Builder success (including a one-slot builder):
+
+```text
+LMCODE_RETURN_BEGIN
+{"ok":true,"result":[{"score":7},null],"parts":2}
+LMCODE_RETURN_END
+```
+
+Builder-only parts is required, equals the submitted count, and equals result
+length. A single program returning a list omits parts; a one-slot builder returning
+that list yields a nested result array with parts:1. Success keys are ok,result,parts.
+
+Controlled failure is flat, with no result, parts or partial-success array:
+
+```text
+LMCODE_RETURN_BEGIN
+{"ok":false,"phase":"run","code":"RUN_HOST","message":"entry refused","line":4,"column":2,"part":1}
+LMCODE_RETURN_END
+```
+
+Phase/code/message are required strings; phase is cli/load/run/app. Optional line
+and column are positive safe integers; column requires line. Optional part is a
+safe integer in `[0, submitted_count)`, builder-only, for a known failing slot
+(including load/contract failure). Global and single failures omit it. Failure
+keys are ok,phase,code,message,line,column,part; no additional keys are permitted.
+
+Use strict UTF-8, no BOM, compact one-line JSON, LF delimiters and exactly one LF
+after END, final on stdout. Reject duplicate keys, malformed/bad-count/type frames
+and trailing bytes. Escaped marker/newline data inside a JSON string is ordinary
+data. Needed traces/findings/SARIF diagnostics precede the frame; domain summaries
+use a tagged host_summary diagnostic, not a second unframed ok/result record.
+Stdout/stderr diagnostics are forwarded, never guessed as results.
+
+| Child outcome | Execution consumer action |
+| --- | --- |
+| Exit 0, valid success | Return the whole envelope; caller reads r.result |
+| Exit 2/cli, 3/load-or-run, 4/app, valid failure | Return failure data without latching an LMScript error |
+| Missing/duplicate/bad frame, unknown exit, count/type or exit/envelope disagreement | Located runtime failure with diagnostics; no guessed result or retry |
+| Spawn failure, crash or broken output without valid frame | Located runtime failure, no fabricated envelope |
+| Caller cancellation | Discard any frame; preserve existing signal outcome (including 130/143) |
+
+Flush once framed. After a write begins/fails, do not append a second frame;
+use stderr best-effort and a nonzero status. No frame is promised after process
+death. Streams preserve LF (binary stdout on Windows); native adapters supply
+UTF-8 argv. There are no execution deadlines, retries or output/event caps.
+
+## Conformance and adoption
+
+C++ `conformance/invocation-vectors` provides exact native success/failure bytes:
+two distinct programs, duplicate programs, one-slot builders, single-list payloads,
+null/nested values and reversed dispatch with shared state. Private slot paths
+include spaces/Unicode. Contract/metadata/sealing/first-failure and real compiled
+mutations are part of the C++ local gates. Typed compiler fixtures remain R2.
+
+The original untyped return bytes/HALT/source locations remain unchanged. Their
+new envelope goldens are generated from authored values/errors, not observed
+stdout. Native frame expectations for compiler core fixtures are a deterministic
+SDK-owned stage after compiler generation. Runtime ports and samples must adopt
+these exact semantics with coherent pins in their assigned R3/R6/R7 lanes.

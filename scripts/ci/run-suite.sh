@@ -8,6 +8,7 @@ python3 scripts/ci/probe-compiler.py
 python3 scripts/ci/check-reference-examples.py
 python3 scripts/ci/check-tutorial.py --sample-root "${LMCODE_SAMPLE:?set LMCODE_SAMPLE to the built C++ sample checkout}"
 python3 -m unittest discover -s scripts/ci/tests -p 'test_*.py' -v
+python3 scripts/ci/check-invocation-envelopes.py
 python3 -m unittest discover -s tests/grammar -p 'test_*.py' -v
 bash scripts/ci/test-cross-runtime.sh
 upstream_status=0

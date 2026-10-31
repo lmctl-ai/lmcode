@@ -233,3 +233,18 @@ extra paths, or `--json` on `--lmcode-signatures` are usage errors, exit 2. A ho
 registry's `signatures()` against this output; the sample suite's `protocol.py` derives the
 expected list independently from the schema, so a missing or extra registration fails even when no
 program calls it (see `spec/conformance.md`).
+
+
+## Optional program result (amendment R1/R2)
+
+The C++ native contract implements optional `result`; compiler schema support is
+R2 and must be verified at its adopted main revision. The declaration is
+`"result":{"type":"IntMap","nullable":false}`. Only type is required; nullable
+defaults false, and type `"null"` forbids that key. Types are `null`, `bool`, `int`,
+`float`, `string`, `Json`, the three typed lists and the three typed maps.
+Unknown types/keys are errors; no declaration permits any JSON including null.
+
+It is host-owned metadata retained by standard merging and by the original raw
+schema hash. It adds no VM type/opcode/import and applies to each submitted
+program, never to an invocation's aggregate wrapper. See the normative
+[contract, nullability and widening rules](host-protocol.md#optional-per-program-result-contract).
