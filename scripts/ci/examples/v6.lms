@@ -1,0 +1,6 @@
+# Published 0.2.444 compile-only form; ARGV[0] is the output bytecode path.
+program = _lmcode_ schema="probe.schema.json";
+  let value = 42;
+  value = value + 1;
+end _lmcode_
+savedsl(program, ARGV[0]);

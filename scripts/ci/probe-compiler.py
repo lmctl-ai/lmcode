@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Exercise the installed compiler, including a real negative type-check control."""
-import json
 import os
 from pathlib import Path
 import shutil
@@ -14,17 +13,21 @@ if os.name == 'nt' and not compiler.lower().endswith(('.exe', '.cmd', '.bat')):
     compiler += '.cmd'
 with tempfile.TemporaryDirectory(prefix='compiler probe ', dir=root) as tmp:
     tmp = Path(tmp)
-    schema = tmp / 'schema.json'
-    schema.write_text(json.dumps({'dsl.schema': 2, 'name': 'ci_probe', 'types': {}, 'functions': {}, 'context': {}}), encoding='utf8')
+    examples = root / 'scripts/ci/examples'
+    shutil.copyfile(examples / 'probe.schema.json', tmp / 'probe.schema.json')
+    original = (examples / 'v6.lms').read_text(encoding='utf8')
     source = tmp / 'probe.lms'
     binary = tmp / 'probe.dslb'
-    def compile_body(body):
-        source.write_text('p = _lmcode_ schema=' + json.dumps(str(schema)) + ';\n' + body + '\nend _lmcode_\nsavedsl(p, ARGV[0]);\n', encoding='utf8')
+    def compile_source(text):
+        source.write_text(text, encoding='utf8')
         return subprocess.run([compiler, '--no-preflight', str(source), str(binary)], capture_output=True, timeout=60)
-    bad = compile_body('let value = 1; value = "wrong type";')
+    anchor = 'value = value + 1;'
+    if original.count(anchor) != 1:
+        raise SystemExit('Example changed: update the negative type-check control')
+    bad = compile_source(original.replace(anchor, 'value = "wrong type";'))
     if bad.returncode != 2:
         raise SystemExit('Compiler negative control must fail with exit 2: ' + repr(bad))
-    good = compile_body('let value = 42;')
+    good = compile_source(original)
     if good.returncode:
         raise SystemExit('Published compiler cannot compile current v6 probe: ' + repr(good))
     data = binary.read_bytes()

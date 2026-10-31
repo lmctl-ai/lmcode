@@ -46,3 +46,8 @@ LANGUAGE=cpp RUNTIME_DIR=/path/to/lmcode-cpp \
 REFERENCE_CPP_DIR=/path/to/reference-lmcode-cpp \
 SAMPLE_DIR=/path/to/lmcode-cpp-sample bash scripts/ci/cross-runtime.sh
 ```
+
+The [executable v6 example](scripts/ci/examples/v6.lms) and its adjacent schema
+are compiled in CI, including a deliberately mistyped variant that must fail.
+This tests the published compile-only form, not the planned block-return syntax.
+The generated file must carry the DSLB v6 header; a v5-output control also fails.
