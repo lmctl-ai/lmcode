@@ -9,6 +9,7 @@ compiler_prefix="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/lmcode-compiler.XX
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) compiler_prefix="$(cd "$compiler_prefix" && pwd -W)";; esac
 npm install --prefix "$compiler_prefix" --no-audit --no-fund "@lmctl-ai/lmctl@$compiler_version"
 export LMSCRIPT_BIN="$compiler_prefix/node_modules/.bin/lmscript"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export LMSCRIPT_BIN="$LMSCRIPT_BIN.cmd";; esac
 export PATH="$compiler_prefix/node_modules/.bin:$PATH"
 "$LMSCRIPT_BIN" --version
 printf 'Compiler selector: %s\nPrivate prefix: %s\n' "$compiler_version" "$compiler_prefix"
