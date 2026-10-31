@@ -213,3 +213,28 @@ new envelope goldens are generated from authored values/errors, not observed
 stdout. Native frame expectations for compiler core fixtures are a deterministic
 SDK-owned stage after compiler generation. Runtime ports and samples must adopt
 these exact semantics with coherent pins in their assigned R3/R6/R7 lanes.
+
+## Dry host invocation marker (H0)
+
+Version-1 invocation metadata has a required boolean `dry`, independent of `mode`:
+
+```json
+{"version":1,"mode":"builder","dry":true,"parts":[{"index":0,"file":"/private/part-0.dslb"}]}
+```
+
+The producer always writes true or false. Collectors reject a missing or nonboolean
+field as a CLI failure; it never silently means real execution. Without a manifest,
+a standalone host defaults to real. The selected mode applies to every builder slot.
+
+A successful dry envelope appends `dry:true` after the existing keys:
+
+```text
+LMCODE_RETURN_BEGIN
+{"ok":true,"result":0,"dry":true}
+LMCODE_RETURN_END
+```
+
+A dry failure similarly appends the marker after existing failure keys, including
+`part` when present. Real envelopes omit `dry`. Consumers require true for a dry
+invocation and reject the marker on real invocations. This marker identifies the
+invocation mode; it does not claim arbitrary host code had no effects.

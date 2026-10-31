@@ -289,3 +289,17 @@ remain unchanged. New native goldens have their own vectors.lock; no suite moves
 between repositories. Ports mirror the canonical data in their adoption slices.
 The specification's full gate cross-checks those native bytes and rejects missing
 parts, wrong counts, bare payloads and partial-result failure shapes.
+
+## Dry host envelope fixture set (H0)
+
+The C++ reference SDK owns the canonical offline fixture bytes used by the Rust,
+Go, Java, and C# ports. Fixtures pair the same schema and bytecode with version-1
+metadata containing `dry:true`; envelope goldens are authored expectations, not
+captured runtime output. Keep real-mode goldens unchanged. At minimum, dry success
+is `{"ok":true,"result":0,"dry":true}` and a dry run failure is
+`{"ok":false,"phase":"run","code":"RUN_HOST","message":"preview failed","dry":true}`.
+
+Each SDK must verify defaults skip effectful real callbacks, explicit previews run
+once, `dry(real)` reads the fixture once, real execution still invokes only the real
+callback, and all dry envelopes carry the mode marker. The C++ suite also pins
+fresh collection dummies and per-slot result sinks.
