@@ -18,13 +18,19 @@ jobs:
   revisions:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
     outputs:
+      compiler_version: ${{ steps.refs.outputs.compiler_version }}
       matrix: ${{ steps.refs.outputs.matrix }}
       reference_sha: ${{ steps.refs.outputs.reference_sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
       - id: refs
         name: Snapshot runtime and sample main revisions
         run: python3 scripts/ci/matrix.py
@@ -40,7 +46,7 @@ jobs:
       run:
         shell: bash
     env:
-      COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
+      COMPILER_VERSION: ${{ needs.revisions.outputs.compiler_version }}
       LANGUAGE: ${{ matrix.language }}
       LMCODE_COMPILER_EXPLICIT_STD: '1'
       CGO_ENABLED: '0'

@@ -27,7 +27,8 @@ COMPILER_VERSION=staging source scripts/ci/install-compiler.sh
 bash scripts/ci/run-suite.sh
 ```
 
-The cross-runtime workflow snapshots main revisions of the five runtime repos,
+The cross-runtime workflow resolves a selected npm tag once to an exact version
+and snapshots main revisions of the five runtime repos,
 their matching sample repos, and lmcode-cpp's reference vectors before starting
 its 25 native jobs (Linux x64/arm64, macOS x64/arm64, Windows x64). It runs runtime
 tests, sends the same reference core/stdlib vectors to each runner, refreshes
