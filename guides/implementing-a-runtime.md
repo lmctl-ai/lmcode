@@ -14,11 +14,12 @@ Normative sources (read these first; this guide cites, not copies):
 - The standard catalog, its ownership and `std.lock`: `spec/std.md`.
 - Reference implementation: `lmcode-cpp` (`include/dslvm.hpp` is canonical for behavior).
 
-Conventions below: "core vectors" are the 73 language-neutral vectors of
-`lmcode-cpp/conformance/vectors/`; "stdlib vectors" are the 268 of
-`lmcode-cpp/conformance/stdlib-vectors/`; "sample suite" is the 108-case corpus of
-`lmcode-cpp/sample-suite/`. Counts are as of 2026-10-30; the manifests pin them (C01 asserts
-exactly 73 core vectors).
+Conventions below distinguish two core sets. The compiler-side C01 generator at source `aa6fecb5` writes 82
+vectors, including 9 return vectors. The expanded canonical runtime corpus in `lmcode-cpp` revision
+`aaa9088a542d43daf81aefb9b024fbb971825f3f` contains 406 vectors; its separate return gate has 9
+fixtures. The stdlib corpus has 268 vectors. The sample suite has 114 cases (77 exit 0, 36 exit 3,
+one exit 4). Counts are pinned by each manifest and must always be reported with its corpus revision;
+do not replace the 406-vector runtime count with the 82-vector C01 count.
 
 ## Milestones, in order
 
@@ -71,20 +72,25 @@ formatting in `str(float)` and traces (P2), byte strings (P5), located errors vi
 Done: the `trace` and `runtime_error`/`runtime_error_at` core vectors pass, including the
 located-error cases and the mutated empty-line-table vector.
 
-Gate: 73/73 core vectors once entries (milestone 6) are in; before that, the non-entry subset.
+Gate: 82/82 compiler-generated C01 vectors once entries (milestone 6) are in, plus the expanded
+406-vector canonical runtime corpus and the separate 9-fixture return gate; before entries land,
+run the non-entry subset. Return sink/frame behavior is landed for slices 1, 3, 5 and 8 (slice 2 is
+in progress); block execution and `load_schema` (slice 4) are planned.
 
 ### 4. Standard library registration
 
-Ship a **byte-identical** copy of `lmcode-cpp/std/lmcode-std.schema.json`, pinned by a `std.lock`
-recording `schema=`, `version=` and `sha256=` (`spec/std.md` §"Ownership and drift pinning"); add
+Copy the catalog bytes from the named `lmcode-cpp` revision and pin them in a `std.lock`
+recording `schema=`, `version=` and `sha256=` (`spec/std.md` §"Ownership and drift pinning").
+Compare the compiler pin separately: current compiler/C++ serialization differs even though
+the signature sets match. Do not infer compatibility from the shared v3 name. Add
 a `scripts/sync-std.sh`-style script that copies from the canonical repo and verifies the digest.
 Register the catalog by default in the registry constructor and provide the explicit opt-out —
 the five existing spellings are in the per-language table below; a new runtime needs its own pair
 (e.g. `Registry()` / `Registry(StdMode::Disabled)`). Registration is idempotent; testing helpers
 (`print`, `assert_close`) are **not** std and stay host-registered. Collection handles live in a
 per-run arena with a 65,536-object budget (P7). One catalog group per milestone-sized commit;
-`template_render` is declared in v3 but so far implemented only in C++ — decide and record your
-status as `spec/std.md` §"template_render status" does.
+`template_render` is registered by all five ports at the named revisions in
+[std.md](../spec/std.md#template_render-status); verify a new port independently.
 
 Done: `--dsl-signatures`-equivalent output matches `lmscript --dsl-signatures` on the merged
 schema; the std.lock digest verifies.
@@ -128,12 +134,15 @@ first, and `call-body-trace` pins it).
 ### 7. The CLI protocol
 
 Implement the flags and result records of `spec/host-protocol.md`: `--dsl FILE`, `--dsl-schema
-[--json]` (the exact embedded schema bytes), `--dsl-signatures` (sorted canonical signatures,
-never interfaces), `--version`; usage errors exit 2 with the `CLI_USAGE` JSON record; one result
-record per program as the **last** stdout line; exit codes 0/2/3/4. stdout is LF bytes on every
+[--json]` (only the `--json` form promises the exact embedded schema bytes; the bare summary is
+host-chosen), `--dsl-signatures` (sorted canonical signatures,
+never interfaces), `--version`; usage errors exit 2 (the sample uses `CLI_USAGE` JSON; lmok
+uses stderr usage). Legacy hosts finish with the result record; return-capable hosts append
+the terminal return frame after successful dispatch and application validation. Exit codes are 0/2/3/4. stdout is LF bytes on every
 platform (the C++ sample sets `_O_BINARY` on Windows).
 
-Done: trace lines then exactly one JSON record, stderr empty, exits per the table.
+Done: trace lines then a result record and, for return-capable hosts, the success frame;
+failed invocations have no frame. The sample protocol requires empty stderr and exits per the table.
 
 Gate: the sample suite's `protocol.py` plus its CLI discovery checks — a port that only runs
 bytecode cases is not conforming (`spec/conformance.md` §"Running the suite").
@@ -149,7 +158,8 @@ Done: byte-level agreement with the `.expect` semantics — not with C++ interna
 `~ ` approximate float lines (tolerance `1e-12 * max(|expected|, 1e-300)`, last token finite;
 `spec/conformance.md` §"The .expect protocols").
 
-Gate: **73/73 core and 268/268 stdlib vectors**, run by your own runner from your own repo, with
+Gate: **406/406 canonical core and 268/268 stdlib vectors**, plus the 9 return-vectors fixtures,
+run by your own runner from your own repo, with
 `vectors.lock`-style integrity pins on the copied corpus.
 
 ### 9. A sample host against the sample-suite
@@ -162,7 +172,7 @@ Port the canonical shop host (`lmcode-cpp-sample/src/main.cpp`, `shop.cpp`) as
 
 Done: exact stdout bytes and exit code per case, empty stderr, fresh `SAMPLE_TMP` per case.
 
-Gate: `python3 sample-suite/run-suite.py /path/to/lmcode-<lang>-sample` passes all 108 cases,
+Gate: `python3 sample-suite/run-suite.py /path/to/lmcode-<lang>-sample` passes all 114 cases,
 which includes manifest hash validation, `check-compile-errors.py` and `protocol.py` before any
 case runs.
 
@@ -188,7 +198,7 @@ spellings; Go re-implements it deterministically as `FormatG15` and Java as
 `Formatting.formatG15` (lmcode-go/durable-memory/02-decisions.md;
 lmcode-csharp/durable-memory/02-decisions.md; lmcode-cpp/include/dslvm.hpp:326). But `%.15g` does
 **not** round-trip: `0.1+0.2` prints `0.3`, a different binary64. Any protocol boundary that must
-preserve values — the planned `LMCODE_RETURN_BEGIN/END` frame is the concrete case — requires the
+preserve values — the landed `LMCODE_RETURN_BEGIN/END` frame is the concrete case — requires the
 language's shortest-round-trip formatter (C++17 `std::to_chars`, Go `strconv.FormatFloat(v,'g',-1,64)`,
 Rust `{:?}`/ryu, Java `Double.toString`; C# `G17` needs a parse-back check, it is not shortest).
 Reusing F2S machinery for frame/result text is the WP25 F1 finding.
@@ -330,11 +340,10 @@ Default-registration spellings summarized (source: `lmcode-cpp/durable-memory/06
 
 ## What this guide could not verify
 
-- **Java's exact std signature count.** `lmcode-java/durable-memory/02-api.md` says "181 standard
-  v3 signatures" while the canonical catalog is 182 after `template_render` joined v3
-  (2026-10-29); `spec/std.md` records `template_render` as unimplemented outside C++, which is
-  consistent with Java shipping 181 — but the Java clone's docs do not state whether the omission
-  is deliberate or pending. Treat the canonical schema, not any port's count, as the target.
+- **Cross-port return-sink parity.** `template_render` registration is verified for all five
+  ports at the revisions in [std.md](../spec/std.md#template_render-status). That does not
+  establish return-sink parity (slice 2 remains in progress); target the current 206-signature
+  C++ catalog and verify each port's revision and return gate separately.
 - **Kotlin/Scala sample repos.** `lmcode-kotlin-sample` and `lmcode-scala-sample` clones exist in
   the team workspace, but there is no corresponding `lmcode-kotlin` / `lmcode-scala` runtime repo
   there; whether they bind the Java SDK or something else was not determined from the sources

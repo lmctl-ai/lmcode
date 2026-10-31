@@ -5,9 +5,9 @@ not a new copy or a migration of canonical test data.
 
 | Surface | Current home | What a green result proves |
 | --- | --- | --- |
-| Core DSLB v6: 397 vectors | [C++ reference corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/vectors) | execution traces, rule entries, located runtime failures, malformed container/operand/loop refusal |
+| Core DSLB v6: 406 vectors (82 compiler C01 plus 324 boundary/rejection cases) | [C++ reference corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/vectors) | execution traces, rule entries, located runtime failures, malformed container/operand/loop refusal |
 | Standard library: 268 vectors | [C++ standard corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/stdlib-vectors) | catalog operations and selected value/error partitions |
-| Native host integration | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
+| Native host integration: 114 cases (77 exit 0, 36 exit 3, 1 exit 4) | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
 | Compiler/checker and outer-language behavior | [mono DSL tests](https://github.com/lmctlhq/lmctl-mono/tree/main/lmscript/tests) | typing/schema rejection, splices/deferred checking, source mapping and check/dry-run behavior |
 
 The core generator remains [in mono](https://github.com/lmctlhq/lmctl-mono/blob/main/lmscript/scripts/generate-dsl-conformance.ts).
@@ -19,8 +19,9 @@ manifest, rather than changing expected answers to match that runtime.
 
 ## Added boundary partitions
 
-The expansion from 73 to 397 core cases adds 301 executable partitions and 23
-malformed-wire cases. Host-bound operands prevent constant folding from bypassing
+The boundary-only expansion grew the historical 73-vector baseline to 397 cases
+(301 executable partitions and 23 malformed-wire cases). Nine concurrent return cases
+bring the current canonical total to 406: 82 compiler C01 plus 324 boundary/rejection cases. Host-bound operands prevent constant folding from bypassing
 runtime arithmetic. Independent signed-i64 BigInt oracles distinguish overflow
 wrapping from JS-number rounding. Cases cover sign/zero/int32/2^53 boundaries,
 integer and float comparisons, bool truth tables, float arithmetic, empty/reversed
@@ -50,8 +51,10 @@ The sample suite tests process/host integration separately from VM semantics.
 A green corpus does not establish platform-independent performance limits,
 thread safety, resource usage, or arbitrary application policy.
 
-Returned block values and ResultSink terminal-frame integration are concurrent
-work in progress and are not certified by this extension. Outer-language reverse
+The nine return vectors and separate nine-fixture return gate now cover ResultSink
+payload/frame behavior on C++ main `aaa9088`; cross-port sink adoption (slice 2) is in
+progress. Executing blocks and `load_schema` (slice 4) remain planned for the supported
+baseline and are not certified by this extension. Outer-language reverse
 templating is separate from DSLB instruction conformance. No new bytecode version,
 return protocol, schema format, canonical repository move or compatibility layer
 is introduced by this audit.

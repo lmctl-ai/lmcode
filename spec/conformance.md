@@ -21,11 +21,17 @@ Normative sources:
 
 ## The core corpus (`conformance/vectors/`)
 
-73 vectors, manifest format `dsl-conformance/3`, `bytecode_version` 6. Each vector is three files:
+The current C++ checkout at `lmcode-cpp` revision `aaa9088a542d43daf81aefb9b024fbb971825f3f`
+contains 406 vectors, manifest format `dsl-conformance/3`, `bytecode_version` 6. Each vector is three files:
 `NAME.dsl` (the DSL body source), `NAME.dslb` (the bytecode), `NAME.expect` (the expectation).
 The directory also holds `schema.json` (the conformance schema), `schema-extra.json` (the same
 schema plus one function the stub does not implement, for the unbound-import case),
 `schema-ctx.json` (context `t` retyped, for the context-type case) and `manifest.json`.
+
+The compiler-side C01 baseline at compiler source `aa6fecb5` contains 82 vectors (including nine return vectors); the
+expanded canonical runtime corpus above adds 324 boundary/rejection cases. Use the
+generator revision matching the selected manifest: the historical 82-vector generator
+does not reproduce the expanded 406-vector corpus.
 
 The vectors are generated, not hand-written: `generate-dsl-conformance.ts` compiles each
 `NAME.dsl` with the real compiler (`compileDsl` in `lmscript/dsl.ts`) against the conformance
@@ -80,12 +86,28 @@ payload line encodes a newline in the expected text. Line grammars:
 - `call_error_at` — line 2 is `ENTRY ARGS-JSON`, then code, line, column, message substring, as in
   `runtime_error_at`.
 
+### Return sink and frame expectations
+
+The nine return vectors are part of the 406-vector C++ corpus and carry a trailing `sink` record.
+The record is not a trace line: the runner removes it before interpreting payload lines and compares
+both fields after execution, including the partial sink payload after a failure. The
+manifest carries the same object in `expect.sink`. Its form is `sink {"json":STRING,"frame":STRING}`, with JSON string
+escaping applied to both values. The `json` field is the invocation-owned `ResultSink` payload;
+`frame` is the exact LF-delimited `LMCODE_RETURN_BEGIN`, payload, `LMCODE_RETURN_END` text (or the
+empty string when execution fails). A host binds and resets one sink before the body, keeps it through
+selected entry calls, and emits the frame only after dispatch and application validation. A sink
+trailer must never be counted as a trace line or silently ignored. The separate
+`conformance/return-vectors/` gate has 9 fixtures and is run by `make conformance`; its `vectors.lock`
+pins schema, sources, bytecode and expected bytes. This return gate covers slices 1, 2 (in progress),
+3, 5 and 8; block execution and `load_schema` (slice 4) remain planned.
+
 ### What C01 pins
 
-`tests/dsl-conformance.test.ts` ("DSL C01") is the compiler-side gate. It regenerates the corpus
+`tests/dsl-conformance.test.ts` ("DSL C01") at compiler source `aa6fecb5` is the 82-vector compiler-side gate. It regenerates the corpus
 and asserts:
 
-- exactly 73 vectors, manifest format `dsl-conformance/3`, `bytecode_version` equal to the
+- exactly 82 generated vectors in the compiler-side C01 set (including 9 return vectors), manifest
+  format `dsl-conformance/3`, `bytecode_version` equal to the
   compiler's `DSL_VERSION` (6);
 - every vector's `.expect` line 1 is a known kind and agrees with the manifest's expectation key;
   minimum kind counts (trace ≥ 9, entries ≥ 1, call ≥ 8, call_error ≥ 1, call_error_at ≥ 1,
@@ -163,10 +185,10 @@ with the `.expect` semantics above, not with C++ internals.
 
 ## The sample suite (`sample-suite/`)
 
-108 pinned cases, manifest format 1, `bytecode_version` 6, schema `sample.dsl.json` (schema 2
+114 pinned cases, manifest format 1, `bytecode_version` 6, schema `sample.dsl.json` (schema 2
 with merged default std; the domain-only declarations are in `host.schema.json`), and
 `compiler_minimum` `0.2.420`. The suite is the source of truth shared by all `lmcode-*-sample`
-host ports. Case distribution by expected exit: 71 × 0, 36 × 3 (host load/run failure), 1 × 4
+host ports. Case distribution by expected exit: 77 × 0, 36 × 3 (host load/run failure), 1 × 4
 (application failure).
 
 Each manifest case declares `name`, `bytecode` + `bytecode_sha256`, `expected_exit`,
