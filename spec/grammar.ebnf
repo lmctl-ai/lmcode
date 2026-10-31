@@ -245,8 +245,8 @@ json_literal ::= JSON_LITERAL                  (* written `json` HeredocLit in s
                                                    literal) field defers compilation to run
                                                    time. *)
 
-  `load_schema` does not exist in the compiler at lmctl 0.2.444 (a grep of lmscript.ts and
-  data-formats.ts finds nothing); the header forms that exist are exactly schema=, cli= and
-  install= above. Mainline slice-3 `$return` writes are specified in Part B; they are not
-  accepted by released 0.2.444. Executing blocks and load_schema remain planned (slice 4).
+  `load_schema` does not exist in the compiler at lmctl 0.2.444 (the released header forms
+  are exactly schema=, cli= and install= above); mono main at 0bc80277 adds it. Mainline
+  slice-3 `$return` writes are specified in Part B; they are not accepted by released
+  0.2.444. Executing blocks and load_schema are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6).
 *)

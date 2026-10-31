@@ -90,7 +90,7 @@ name v3 alone do not guarantee a compatible compiler/runtime pair.
 | C++ `aaa9088`, lmok `f13cc8f7` mainline | Invocation sink and terminal frame adopted (slices 1 and 8) |
 | Compiler source `aa6fecb5` (slices 3 and 5) | `$return` lowering and reverse-template extraction landed; see [host contract](spec/host-protocol.md#return-sink-and-frame-contract) |
 | Cross-port sink adoption (slice 2) | In progress; check each port's revision rather than assuming parity |
-| Executing blocks, `load_schema`, `out=` (slice 4) | Planned; not part of the released quickstart |
+| Executing blocks, `load_schema`, `out=` (slice 4) | Landed in mono main (`0bc80277`); not in released 0.2.444; needs a frame-emitting host (C++ SDK main: yes, verified; samples: pending slice 6) |
 
 The [standard catalog](spec/std.md) names the 181-signature release and 206-signature
 C++ main catalogs and records their differing byte pins. The grammar includes mainline

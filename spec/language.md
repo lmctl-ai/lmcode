@@ -81,7 +81,7 @@ absent from the released **0.2.444** compiler used by this tutorial/CI baseline.
 accepted values, number validation and failure silence.
 
 Executing blocks `_lmcode_ HANDLE [out=EXPR];` and the `load_schema(...)` descriptor API
-(slice 4) remain planned for the supported baseline. `savedsl`, `dsl_cli` and `_dsl_`
+(slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6). `savedsl`, `dsl_cli` and `_dsl_`
 remain the release compatibility path. Return writes do not imply automatic host execution.
 
 ## 3. Lexical rules

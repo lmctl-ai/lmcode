@@ -75,7 +75,7 @@ located-error cases and the mutated empty-line-table vector.
 Gate: 82/82 compiler-generated C01 vectors once entries (milestone 6) are in, plus the expanded
 406-vector canonical runtime corpus and the separate 9-fixture return gate; before entries land,
 run the non-entry subset. Return sink/frame behavior is landed for slices 1, 3, 5 and 8 (slice 2 is
-in progress); block execution and `load_schema` (slice 4) are planned.
+in progress); block execution and `load_schema` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6).
 
 ### 4. Standard library registration
 

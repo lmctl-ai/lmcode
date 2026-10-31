@@ -4,7 +4,8 @@ Status: current for flags, result records, exit codes, and the return sink/frame
 have adopted it. Published compiler 0.2.444 still emits opaque compile-only blocks. Mainline
 return lowering/extraction (slices 3, 5, and 8) and the C++/lmok sink/frame are landed; sink
 setup (slice 1) is landed and cross-port adoption (slice 2) remains in progress. Block execution and
-`load_schema` (slice 4) are planned and separate from this contract.
+`load_schema` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6); the frame contract below is what an
+executing block parses.
 
 A host is a native program that loads DSLB bytecode and runs it. The compiler never runs programs;
 the host never compiles them. They meet twice: at compile time the host prints its schema (the
@@ -100,7 +101,7 @@ The compiler main line lowers `$return` writes to `lmcode_return_*` imports, and
 provide the invocation sink and terminal frame. The published 0.2.444 compiler lacks `$return` lowering, but frame behavior is selected by
 the host: lmok emits it even for programs compiled with that release. The C++ sample at
 `be54c73` retains legacy result-only behavior. Block execution and `load_schema`
-remain planned.
+are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6).
 
 - On success a return-capable CLI prints its traces and `{"ok", "result"}` record as today, then exactly
   `LMCODE_RETURN_BEGIN\n<compact JSON value>\nLMCODE_RETURN_END\n`. The frame is **always**

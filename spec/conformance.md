@@ -99,7 +99,8 @@ selected entry calls, and emits the frame only after dispatch and application va
 trailer must never be counted as a trace line or silently ignored. The separate
 `conformance/return-vectors/` gate has 9 fixtures and is run by `make conformance`; its `vectors.lock`
 pins schema, sources, bytecode and expected bytes. This return gate covers slices 1, 2 (in progress),
-3, 5 and 8; block execution and `load_schema` (slice 4) remain planned.
+3, 5 and 8; block execution and `load_schema` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6), and are
+covered by the mono execution/frame tests rather than certified by this VM-only corpus.
 
 ### What C01 pins
 

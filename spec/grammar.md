@@ -63,7 +63,7 @@ is also accepted as the complete RHS. Released **0.2.444 rejects these forms**; 
 corpus parse check uses mainline return vectors, while differential checks using
 0.2.444 establish only the shared baseline. The harness probes return support and reports
 its exact unsupported-dollar disagreements separately as `compiler-baseline`. Executing blocks and `load_schema`
-remain planned (slice 4). See the public [return contract](host-protocol.md#return-sink-and-frame-contract).
+are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6). See the public [return contract](host-protocol.md#return-sink-and-frame-contract).
 
 ## Static semantics, not grammar
 

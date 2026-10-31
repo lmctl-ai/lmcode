@@ -495,8 +495,8 @@ The published 0.2.444 compiler remains a compile-only surface: `savedsl`, `dsl_c
 `_dsl_` spelling are the current compatibility path. On compiler/host main, `$return` lowering,
 reverse extraction, and the C++/lmok sink/frame are landed (slices 3, 5, and 8); sink setup (slice 1) is landed and cross-port adoption
 (slice 2) is in progress. `load_schema(...)` and executing blocks with
-`_lmcode_ HANDLE [out=EXPR];` (slice 4) remain planned. Do not write programs against those
-planned forms until their slice is declared landed.
+`_lmcode_ HANDLE [out=EXPR];` (slice 4) are landed in mono main at `0bc80277` (2026-10-31); they are absent from the released 0.2.444 compiler, and execution additionally needs a host that emits the terminal frame (the C++ SDK main does — verified end to end against `0bc80277` in the wp40 review; the samples do not yet, slice 6). Do not write programs against
+those forms with the released 0.2.444 compiler this tutorial pins.
 
 This tutorial covers exactly the **current 0.2.444 surface**: compile a block, write bytecode
 with `savedsl`, run it with `host --dsl file.dslb`.
