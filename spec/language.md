@@ -3,8 +3,8 @@
 Status: current. This is the reference for people who **write** lmcode source — the language inside
 `_lmcode_ ... end _lmcode_` blocks. It is not a tutorial, and it does not cover how runtimes load or
 execute the compiled output; the wire format and loader rules live in `spec/bytecode.md`, the test
-contract in `spec/conformance.md`, the schema document format in `spec/schema.md`, and the standard
-catalog in `spec/std.md`.
+contract in `spec/conformance.md`, the schema document format in `spec/schema.md`, the host CLI
+protocol in `spec/host-protocol.md`, and the standard catalog in `spec/std.md`.
 
 Normative sources:
 
@@ -511,7 +511,8 @@ When the region's line table covers the faulting pc, the message becomes `dsl li
 (one-based; a column of 0 means unavailable and the message is `dsl line N: MESSAGE`). An empty
 line table is valid and yields the unlocated message. CLI hosts print exactly one JSON result line
 (`{"ok": true, "result": ...}` or `{"ok": false, "phase": ..., "code": ..., "message": ...}`), with
-exit codes 2 compile / 3 host load-or-run / 4 application (R26/S0′).
+exit codes 2 compile / 3 host load-or-run / 4 application (R26/S0′); the full CLI protocol — flags,
+records, exit codes — is `spec/host-protocol.md`.
 
 ## 13. Language ↔ bytecode version map
 
