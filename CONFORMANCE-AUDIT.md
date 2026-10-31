@@ -52,8 +52,9 @@ A green corpus does not establish platform-independent performance limits,
 thread safety, resource usage, or arbitrary application policy.
 
 The nine return vectors and separate nine-fixture return gate now cover ResultSink
-payload/frame behavior on C++ main `aaa9088`; cross-port sink adoption (slice 2) is in
-progress. Executing blocks and `load_schema` (slice 4) remain planned for the supported
+payload/frame behavior. All five core runners pass 406/406 locally with the
+merged sink observers; terminal-frame adoption by application CLIs remains a
+separate integration step. Executing blocks and `load_schema` (slice 4) remain planned for the supported
 baseline and are not certified by this extension. Outer-language reverse
 templating is separate from DSLB instruction conformance. No new bytecode version,
 return protocol, schema format, canonical repository move or compatibility layer
