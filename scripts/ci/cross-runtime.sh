@@ -75,6 +75,10 @@ sync_sample
 echo "== sample suite: $LANGUAGE"
 if [[ "$LANGUAGE" == js ]]; then
   (cd "$RUNTIME_DIR" && npm run verify:pins && npm run sample-suite)
+elif [[ "$LANGUAGE" == java && "${RUNNER_OS:-}" == Windows ]]; then
+  # The Java sample deliberately requires an actual native host for Windows
+  # discovery; a POSIX wrapper cannot be executed by Windows subprocess APIs.
+  (cd "$SAMPLE_DIR" && RUN_NATIVE=1 LMSCRIPT_BIN="$LMSCRIPT_BIN" LMSCRIPT_MIN=0 bash ./test.sh)
 else
   (cd "$SAMPLE_DIR" && LMSCRIPT_BIN="$LMSCRIPT_BIN" LMSCRIPT_MIN=0 bash ./test.sh)
 fi

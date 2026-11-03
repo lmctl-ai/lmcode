@@ -25,7 +25,7 @@ def compiler_version():
     return value
 
 def main():
-    platforms = [('ubuntu-24.04','linux-x64'), ('ubuntu-24.04-arm','linux-arm64'), ('macos-15','macos-arm64'), ('macos-15-intel','macos-x64'), ('windows-2022','windows-x64')]
+    platforms = [('ubuntu-24.04','linux-x64'), ('ubuntu-24.04-arm','linux-arm64'), ('macos-26','macos-arm64'), ('macos-26-intel','macos-x64'), ('windows-2022','windows-x64')]
     rows = []
     for language in ['cpp','rust','go','java','csharp','js']:
         runtime = revision('lmcode-'+language)

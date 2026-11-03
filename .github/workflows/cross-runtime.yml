@@ -48,6 +48,7 @@ jobs:
     env:
       COMPILER_VERSION: ${{ needs.revisions.outputs.compiler_version }}
       LANGUAGE: ${{ matrix.language }}
+      NATIVE_PLATFORM: ${{ matrix.platform }}
       LMCODE_COMPILER_EXPLICIT_STD: '1'
       CGO_ENABLED: '0'
     steps:
@@ -92,6 +93,8 @@ jobs:
         with:
           java-version: '21'
           distribution: graalvm-community
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+        if: runner.os == 'Windows' && matrix.language == 'java'
       - name: Preserve Unicode JVM argv on Windows
         if: runner.os == 'Windows' && matrix.language == 'java'
         shell: pwsh
@@ -112,6 +115,8 @@ jobs:
           printf '#!/usr/bin/env bash\nexec python "$@"\n' > .ci-bin/python3
           chmod +x .ci-bin/python3
           echo "$PWD/.ci-bin" >> "$GITHUB_PATH"
+      - name: Verify the native platform claim
+        run: python3 scripts/ci/check-native-platform.py "$NATIVE_PLATFORM"
       - name: Runtime tests, shared conformance and recompiled sample suite
         run: |
           export RUNTIME_DIR="$(cd .ci-work/runtime && pwd)"

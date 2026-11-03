@@ -110,3 +110,8 @@ preflight-bypass option, explicit discovery for cold CLI schemas, and compiler-l
 fixture generation in maintainer tooling. Runtime/sample entrypoints and their
 canonical SDK/suite pins are repaired in their owning repositories; the matrix
 runs them without argument-stripping compatibility shims or skipped checks.
+
+The current macOS baseline is26, using macos-26 (arm64) and macos-26-intel
+(x64). The older15 labels remained unassigned for over30 minutes during repair;
+this is an explicit baseline update, never a runtime-dependent fallback or skip.
+Each cell checks the actual OS/architecture before claiming its platform.
