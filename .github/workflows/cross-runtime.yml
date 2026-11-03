@@ -67,6 +67,7 @@ jobs:
           path: .ci-work/reference
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: matrix.language != 'js'
         with:
           repository: lmctl-ai/lmcode-${{ matrix.language }}-sample
           ref: ${{ matrix.sample_sha }}
@@ -111,11 +112,13 @@ jobs:
         run: |
           export RUNTIME_DIR="$(cd .ci-work/runtime && pwd)"
           export REFERENCE_CPP_DIR="$(cd .ci-work/reference && pwd)"
-          export SAMPLE_DIR="$(cd .ci-work/sample && pwd)"
+          sample_path=.ci-work/sample
+          if [[ "$LANGUAGE" == js ]]; then sample_path=.ci-work/runtime; fi
+          export SAMPLE_DIR="$(cd "$sample_path" && pwd)"
           if [[ "$RUNNER_OS" == Windows ]]; then
             RUNTIME_DIR="$(cd .ci-work/runtime && pwd -W)"
             REFERENCE_CPP_DIR="$(cd .ci-work/reference && pwd -W)"
-            SAMPLE_DIR="$(cd .ci-work/sample && pwd -W)"
+            SAMPLE_DIR="$(cd "$sample_path" && pwd -W)"
             export RUNTIME_DIR REFERENCE_CPP_DIR SAMPLE_DIR
           fi
           bash scripts/ci/cross-runtime.sh

@@ -6,11 +6,10 @@ self-hosted machine or globally installed lmctl is required. CI downloads
 
 The compiler selector is the manual workflow input compiler_version, then the
 repository variable LMCODE_COMPILER_VERSION, then scripts/ci/compiler-version
-(currently 0.2.450, the published v6 baseline). To test a newer release or tag,
+(currently 0.2.456, including the required dry invocation marker). To test a newer release or tag,
 run the ci workflow manually and set compiler_version, for example staging.
-The default 0.2.450 predates the host flag rename and will now fail visibly.
-For local checks, set `LMSCRIPT_BIN` to a built mono-main compiler; for Actions,
-select a published version containing commits `4ccaaa08`/`78cf173b` when available.
+The historical 0.2.450 producer omits the mandatory dry marker and cannot be
+paired with current hosts. The selected baseline must support that contract.
 No fallback to retired flags is attempted. A compiler that cannot satisfy the suite fails visibly; planned language
 features must not be claimed as passing through skipped checks.
 
@@ -41,9 +40,9 @@ bash scripts/ci/run-suite.sh
 ```
 
 The cross-runtime workflow resolves a selected npm tag once to an exact version
-and snapshots main revisions of the five runtime repos,
-their matching sample repos, and lmcode-cpp's reference vectors before starting
-its 25 native jobs (Linux x64/arm64, macOS x64/arm64, Windows x64). It runs runtime
+and snapshots main revisions of six runtime repos,
+the five separate matching sample repos (JavaScript bundles its sample), and lmcode-cpp's reference vectors before starting
+its 30 native jobs (Linux x64/arm64, macOS x64/arm64, Windows x64). It runs runtime
 tests, sends the same reference core/stdlib vectors to each runner, refreshes
 samples with their own sync scripts, and recompiles/runs their sample suites.
 Go uses a local module replacement in the disposable sample checkout so it
@@ -53,7 +52,7 @@ The vectors and sample suite remain in lmcode-cpp; this workflow does not move
 the canonical source or silently skip catalog incompatibilities.
 
 For a single cross-runtime run after installing the compiler, supply disposable
-checkouts and the language name (cpp, rust, go, java or csharp):
+checkouts and the language name (cpp, rust, go, java, csharp or js):
 
 ```sh
 LANGUAGE=cpp RUNTIME_DIR=/path/to/lmcode-cpp \
@@ -87,3 +86,11 @@ The tutorial runner extracts its 15 programs and compares the documented stdout,
 exit codes, compile diagnostics and a corrupted schema-hash example against the
 built C++ sample. Only paths and the explicitly abbreviated scope-name inventory
 are normalized. A changed expected-output control must fail.
+
+JavaScript cells use Node24 on all five platforms. They generate the dependency-free
+SDK lock in the disposable runtime checkout, run npm ci, sync std and all four
+vector families from the snapshotted reference using the SDK sync scripts, then
+run unit/mutation/full conformance gates. The bundled sample is refreshed with
+sync-sample-suite.mjs and checked with npm run verify:pins and npm run sample-suite.
+SAMPLE_DIR is the runtime checkout for js; there is no lmcode-js-sample repository.
+No failed npm/conformance command is caught or converted to a successful cell.

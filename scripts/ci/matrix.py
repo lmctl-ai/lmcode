@@ -27,9 +27,10 @@ def compiler_version():
 def main():
     platforms = [('ubuntu-24.04','linux-x64'), ('ubuntu-24.04-arm','linux-arm64'), ('macos-15','macos-arm64'), ('macos-15-intel','macos-x64'), ('windows-2022','windows-x64')]
     rows = []
-    for language in ['cpp','rust','go','java','csharp']:
+    for language in ['cpp','rust','go','java','csharp','js']:
         runtime = revision('lmcode-'+language)
-        sample = revision('lmcode-'+language+'-sample')
+        # JavaScript's teaching host lives in the runtime repository.
+        sample = runtime if language == 'js' else revision('lmcode-'+language+'-sample')
         rows.extend(dict(language=language,os=os_name,platform=platform,runtime_sha=runtime,sample_sha=sample) for os_name,platform in platforms)
     outputs = dict(matrix=json.dumps({'include':rows},separators=(',',':')), reference_sha=revision('lmcode-cpp'), compiler_version=compiler_version())
     for key,value in outputs.items():

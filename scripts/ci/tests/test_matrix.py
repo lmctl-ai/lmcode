@@ -17,3 +17,22 @@ class Matrix(unittest.TestCase):
         for result in ('["0.2.443","0.2.444"]','null','"staging"'):
             with self.subTest(result=result), patch.object(matrix.subprocess,'check_output',return_value=result):
                 with self.assertRaises(ValueError): matrix.compiler_version()
+
+    def test_javascript_uses_its_bundled_sample_on_all_five_platforms(self):
+        import contextlib
+        import io
+        import json
+        repos = []
+        def ref(repo):
+            repos.append(repo)
+            return ('b' if repo == 'lmcode-js' else 'a') * 40
+        output = io.StringIO()
+        with patch.object(matrix, 'revision', side_effect=ref), patch.object(matrix, 'compiler_version', return_value='0.2.456'), patch.dict(os.environ, GITHUB_OUTPUT=''), contextlib.redirect_stdout(output):
+            matrix.main()
+        rows = json.loads(next(line[7:] for line in output.getvalue().splitlines() if line.startswith('matrix=')))['include']
+        js = [row for row in rows if row['language'] == 'js']
+        self.assertEqual(len(js), 5, 'JavaScript must participate in every native platform')
+        self.assertEqual(len(rows), 30)
+        self.assertEqual({row['platform'] for row in js}, {'linux-x64', 'linux-arm64', 'macos-arm64', 'macos-x64', 'windows-x64'})
+        self.assertTrue(all(row['sample_sha'] == row['runtime_sha'] == 'b'*40 for row in js))
+        self.assertNotIn('lmcode-js-sample', repos, 'JS sample is bundled, not a separate repository')
