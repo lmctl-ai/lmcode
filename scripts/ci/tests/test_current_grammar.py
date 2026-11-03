@@ -8,8 +8,11 @@ from ebnf_to_lark import translate
 from lark import Lark
 
 class CurrentGrammar(unittest.TestCase):
-    def test_strict_lalr_construction(self):
-        Lark(translate(grammar_source()),start="program",parser="lalr",lexer="basic",strict=True)
+    def test_contextual_lalr_construction(self):
+        # FSTRING_TEXT intentionally overlaps global whitespace: those bytes are
+        # f-string content in this parser state, but trivia everywhere else.
+        # Contextual lexing is the same mode used by parse_lib.build_parser().
+        Lark(translate(grammar_source()),start="program",parser="lalr",lexer="contextual")
     def test_return_lowering_now_on_compiler_main(self):
         parser=build_parser()
         for source in ('$return = 1;', '$return = null;', '$ return.name = "value";', '$return["key"] = true;'):

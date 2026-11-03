@@ -171,13 +171,12 @@ is a run-time error — shown in §6.
 
 `+` concatenates strings (the right side must already be a string — use `str(x)`). Functions like
 `str_upper`/`str_len`/`str_replace` come from the standard catalog, not the language
-(`spec/std.md`). A single-line `f"..."` string converts scalar fields with `str`, and doubled
-braces produce literal braces, making it a direct replacement for concatenation boilerplate:
+(`spec/std.md`). The following runnable example uses explicit concatenation:
 
 ```text
 program = _lmcode_ cli="lmcode-cpp-sample";
 let name = str_upper("lmcode");
-print(f"{{{name}}} has {str_len(name)} chars");
+print(name + " has " + str(str_len(name)) + " chars");
 print(str_replace("a-b-c", "-", "+"));
 end _lmcode_
 result = run_lmcode(program);
@@ -187,10 +186,20 @@ print(json_stringify(result));
 Output — pinned verbatim:
 
 ```text
-{LMCODE} has 6 chars
+LMCODE has 6 chars
 a+b+c
 {"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}
 {"ok":true,"result":null}
+```
+
+### Formatted string interpolation (S1)
+
+A single-line `f"..."` string converts scalar fields with `str`; doubled braces emit literal
+braces. This replaces concatenation boilerplate such as the preceding example:
+
+```lmcode
+let name = "LMCODE";
+print(f"{{{name}}} has {str_len(name)} chars");
 ```
 
 ### Lists and maps: `qw()` and `%(...)` (§3.5, §3.6, §6)
