@@ -81,7 +81,7 @@ print(json_stringify(result));
         check=subprocess.run([compiler,'--check',str(formatted)],env=env,capture_output=True)
         if check.returncode==0 and not check.stdout and not check.stderr:
             run=subprocess.run([compiler,str(formatted)],env=env,capture_output=True)
-            expected=('{LMCODE} has 6 chars\n'
+            expected=('LMCODE has 6 chars\n'
                 '{"host_summary":{"balance": 0, "entries": 0, "note": "", "entries_called": 0}}\n'
                 '{"ok":true,"result":null}\n').encode('utf8')
             if (run.returncode,run.stdout,run.stderr)!=(0,expected,b''):

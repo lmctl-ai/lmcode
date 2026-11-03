@@ -199,7 +199,7 @@ braces. This replaces concatenation boilerplate such as the preceding example:
 
 ```lmcode
 let name = "LMCODE";
-print(f"{{{name}}} has {str_len(name)} chars");
+print(f"{name} has {str_len(name)} chars");
 ```
 
 ### Lists and maps: `qw()` and `%(...)` (§3.5, §3.6, §6)
