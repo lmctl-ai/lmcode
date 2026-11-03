@@ -40,10 +40,10 @@ run_runtime() {
         npm run conformance)
       ;;
     cpp) make -C "$RUNTIME_DIR" test conformance; make -C "$RUNTIME_DIR" build/conformance; "$RUNTIME_DIR/build/conformance" "$REFERENCE_CPP_DIR/conformance/vectors"; "$RUNTIME_DIR/build/conformance" "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" ;;
-    rust) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" --no-preflight test.lms); cargo run --release --manifest-path "$RUNTIME_DIR/Cargo.toml" --quiet -p dsl-conformance --bin dsl-conformance -- "$REFERENCE_CPP_DIR/conformance/vectors"; cargo run --release --manifest-path "$RUNTIME_DIR/Cargo.toml" --quiet -p dsl-conformance --bin dsl-conformance -- "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" ;;
-    go) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" --no-preflight test.lms && go run ./cmd/conformance "$REFERENCE_CPP_DIR/conformance/vectors" && go run ./cmd/conformance "$REFERENCE_CPP_DIR/conformance/stdlib-vectors") ;;
+    rust) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" test.lms); cargo run --release --manifest-path "$RUNTIME_DIR/Cargo.toml" --quiet -p dsl-conformance --bin dsl-conformance -- "$REFERENCE_CPP_DIR/conformance/vectors"; cargo run --release --manifest-path "$RUNTIME_DIR/Cargo.toml" --quiet -p dsl-conformance --bin dsl-conformance -- "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" ;;
+    go) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" test.lms && go run ./cmd/conformance "$REFERENCE_CPP_DIR/conformance/vectors" && go run ./cmd/conformance "$REFERENCE_CPP_DIR/conformance/stdlib-vectors") ;;
     java) (cd "$RUNTIME_DIR" && bash ./test.sh); (cd "$RUNTIME_DIR" && mvn -q -DskipTests -Dexec.classpathScope=test exec:java -Dexec.mainClass=io.lmctl.lmcode.ConformanceRunner -Dexec.args="$REFERENCE_CPP_DIR/conformance/vectors $REFERENCE_CPP_DIR/conformance/stdlib-vectors") ;;
-    csharp) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" --no-preflight test.lms); dotnet run --project "$RUNTIME_DIR/conformance/LmCode.Conformance" -- "$REFERENCE_CPP_DIR/conformance/vectors"; dotnet run --project "$RUNTIME_DIR/conformance/LmCode.Conformance" -- "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" ;;
+    csharp) (cd "$RUNTIME_DIR" && "$LMSCRIPT_BIN" test.lms); dotnet run --project "$RUNTIME_DIR/conformance/LmCode.Conformance" -- "$REFERENCE_CPP_DIR/conformance/vectors"; dotnet run --project "$RUNTIME_DIR/conformance/LmCode.Conformance" -- "$REFERENCE_CPP_DIR/conformance/stdlib-vectors" ;;
   esac
 }
 

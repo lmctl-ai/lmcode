@@ -105,9 +105,8 @@ an extra unclassified example each fail. Set LMCODE_JS to a local JS checkout.
 The tutorial checker explicitly discovers its host into a temporary schema cache
 before --check; it never uses or populates the operator's schema cache.
 
-Qualification status (2026-11-03): the JavaScript additions passed all five native
-cells in run41564131729, and the specification/docs workflow is green. The broader
-cross-runtime workflow also runs pre-existing SDK/sample harnesses; several still
-pass the retired standalone --no-preflight option and fail under0.2.456. This
-repository does not strip those arguments or skip their gates to produce a green
-badge. Those upstream harness migrations are separate from JavaScript adoption.
+Current qualification requires the standalone compiler contract: no retired
+preflight-bypass option, explicit discovery for cold CLI schemas, and compiler-library
+fixture generation in maintainer tooling. Runtime/sample entrypoints and their
+canonical SDK/suite pins are repaired in their owning repositories; the matrix
+runs them without argument-stripping compatibility shims or skipped checks.

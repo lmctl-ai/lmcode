@@ -12,6 +12,9 @@ mkdir -p "$tmp/runtime/conformance/vectors" "$tmp/ref/conformance/vectors" "$tmp
 cat > "$tmp/compiler" <<'EOF'
 #!/bin/sh
 printf 'compiler %s\n' "$*" >> "$FAKE_LOG"
+for argument in "$@"; do
+  if [ "$argument" = --no-preflight ]; then echo 'retired standalone compiler option' >&2; exit 42; fi
+done
 exit 0
 EOF
 chmod +x "$tmp/compiler"
@@ -43,7 +46,7 @@ test "$(LANGUAGE=go RUNTIME_DIR="$tmp/runtime" REFERENCE_CPP_DIR="$tmp/ref" SAMP
 grep -F "go run ./cmd/conformance $tmp/ref/conformance/vectors" "$FAKE_LOG" >/dev/null
 grep -F "go run ./cmd/conformance $tmp/ref/conformance/stdlib-vectors" "$FAKE_LOG" >/dev/null
 grep -F 'go mod edit -replace=github.com/lmctl-ai/lmcode-go=' "$FAKE_LOG" >/dev/null
-grep -F 'compiler --no-preflight test.lms' "$FAKE_LOG" >/dev/null
+grep -F 'compiler test.lms' "$FAKE_LOG" >/dev/null
 grep -F 'sync-sdk.sh ' "$FAKE_LOG" >/dev/null
 grep -F 'sync-suite.sh ' "$FAKE_LOG" >/dev/null
 grep -F sample-test "$FAKE_LOG" >/dev/null
