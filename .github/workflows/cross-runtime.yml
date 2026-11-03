@@ -92,6 +92,10 @@ jobs:
         with:
           java-version: '21'
           distribution: graalvm-community
+      - name: Preserve Unicode JVM argv on Windows
+        if: runner.os == 'Windows' && matrix.language == 'java'
+        shell: pwsh
+        run: ./.ci-work/runtime/scripts/configure-windows-utf8.ps1
       - name: Rust toolchain
         if: matrix.language == 'rust'
         run: rustup toolchain install stable --profile minimal && rustup default stable
