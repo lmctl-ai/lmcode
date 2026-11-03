@@ -35,6 +35,31 @@ INT_LIT      ::= [0-9]+                          (* static: value <= 2^53 *)
 FLOAT_LIT    ::= [0-9]+ "." [0-9]+             (* the ONLY float form: digits.digits;
                                                   no exponent, no suffix, no bare dot *)
 STRING_LIT   ::= '"' (ESCAPE | [^"\\#xA])* '"' (* a string literal ends on its line *)
+FSTRING_START ::= "f\""
+FSTRING_TEXT ::= [^{}"\\#xA]+
+FSTRING_ESCAPE ::= "\\" ["\\ntr]
+formatted_string ::= FSTRING_START (FSTRING_TEXT | FSTRING_ESCAPE | '{{' | '}}' | formatted_field)* '"'
+formatted_field ::= '{' formatted_expr '}' (* scalar expression; no nested f-string or format spec *)
+formatted_expr ::= formatted_or_expr
+formatted_or_expr ::= formatted_and_expr ("||" formatted_and_expr)*
+formatted_and_expr ::= formatted_eq_expr ("&&" formatted_eq_expr)*
+formatted_eq_expr ::= formatted_rel_expr (("==" | "!=") formatted_rel_expr)*
+formatted_rel_expr ::= formatted_add_expr (("<" | "<=" | ">" | ">=") formatted_add_expr)*
+formatted_add_expr ::= formatted_mul_expr (("+" | "-") formatted_mul_expr)*
+formatted_mul_expr ::= formatted_unary_expr (("*" | "/" | "%") formatted_unary_expr)*
+formatted_unary_expr ::= "!" formatted_unary_expr | "-" formatted_unary_expr | formatted_postfix_expr
+formatted_postfix_expr ::= formatted_call_chain
+                         | (INT_LIT | FLOAT_LIT | STRING_LIT | bool_lit
+                            | QW_LITERAL | QI_LITERAL | QF_LITERAL
+                            | formatted_map_literal | json_literal | HEREDOC_LIT
+                            | "(" formatted_expr ")") formatted_trailer*
+formatted_trailer ::= "." IDENT formatted_call_args
+formatted_call_args ::= "(" (formatted_expr ("," formatted_expr)*)? ")"
+formatted_call_chain ::= IDENT (formatted_call_args formatted_trailer*
+                              | "." IDENT (formatted_call_args formatted_trailer*)?)?
+formatted_map_literal ::= "%" "(" (formatted_map_entry ("," formatted_map_entry)* ","?)? ")"
+formatted_map_entry ::= formatted_map_key "=>" formatted_expr
+formatted_map_key ::= IDENT | STRING_LIT | "(" formatted_expr ")"
 ESCAPE       ::= "\\" ["'\\ntr]                (* exactly: \\ \" \n \t \r *)
 
 (* Heredocs (`dsl-heredoc.ts`). The tag is matched by the closing line; EBNF cannot express
@@ -168,7 +193,7 @@ unary_expr   ::= "!" unary_expr                (* static: bool operand *)
                                                     into one signed constant *)
                | postfix_expr
 postfix_expr ::= call_chain
-               | (INT_LIT | FLOAT_LIT | STRING_LIT | bool_lit
+               | (INT_LIT | FLOAT_LIT | STRING_LIT | formatted_string | bool_lit
                   | QW_LITERAL | QI_LITERAL | QF_LITERAL
                   | map_literal | json_literal | HEREDOC_LIT | "(" expr ")") trailer*
                                                  (* a method-call trailer on any non-name

@@ -6,7 +6,7 @@
   },
   "lmcode": {
     "repository": "https://github.com/lmctl-ai/tree-sitter-lmcode",
-    "commit": "c9d5021cc98982f558937298e4add9a4f79c574a",
+    "commit": "24269b9770e910982d5cf134c03cd830f96ce97a",
     "mono_pin": "a9df5a8b793ddc90f572d5c5be5800ba8dc448dc"
   },
   "tree_sitter_cli": "0.27.1",

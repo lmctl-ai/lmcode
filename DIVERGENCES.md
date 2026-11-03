@@ -7,11 +7,11 @@ grammar sources stay in their dedicated repositories; the full local corpus is
 read-only and its source text is never copied into this repository.
 
 Pins and source revisions are in `tests/grammar/tree-sitter-pins.json`. The
-published oracle is `@lmctl-ai/lmctl@0.2.448`; grammar commits are
+published CI oracle is `@lmctl-ai/lmctl@0.2.450`; grammar commits are
 `tree-sitter-lmscript` `ff301218f388f30fcf40cd63d235070c162aa283` and
-`tree-sitter-lmcode` `c9d5021cc98982f558937298e4add9a4f79c574a`. The mono
-language source pinned by both grammar repos is `a9df5a8b`; the current mono
-main checked for S3 is `0bc8027738be53d02c185d84851d46e7e8cd3819`.
+`tree-sitter-lmcode` `24269b9770e910982d5cf134c03cd830f96ce97a`. The mono
+language source pinned by both grammar repos is `a9df5a8b`; local mainline
+verification used `bc5646d07cc59e6c940cc2312276ed0aa7bdcb6a`.
 
 ## Accepted differences
 
@@ -37,10 +37,16 @@ source, remains a hard failure.
    already on mono main. In particular, mainline `$return` lowering, returned
    frames, immutable executable descriptors (`load_schema`, `out=`), and
    reverse-template functions are on mono main as of the pin above, while the
-   published 0.2.448 oracle does not include that entire change. The grammar
+   published 0.2.450 oracle does not include that entire change. The grammar
    corpus's planned block-handle `out=` case and comment-bearing splice case are
-   therefore expected compiler rejections at this npm pin. These are parser-
-   version differences, not claims that the feature is planned on mono.
+   therefore expected compiler rejections at this npm pin. The S1 inner f-string
+   syntax is another mainline feature absent from 0.2.450. Its accepted-seed
+   differences are classified here; the mainline source compiler accepts them.
+5. **`mainline-parser-change`** — the source compiler has removed a syntax form
+   that the separately pinned Tree-sitter lmscript corpus still accepts. The
+   current example is the old import-alias spelling (`Import aliases were
+   removed; a source module declares its package`). This is an upstream grammar
+   pin mismatch outside the inner lmcode formatted-string change.
 
 The operator's requested lmcode additions are syntax-safe in both grammars;
 their implementation status follows mono main, not the npm oracle. New grammar
@@ -68,9 +74,9 @@ grammar repositories' committed syntax corpora, with two seeded malformed
 variants per source and a 500-document minimum. The workflow does not publish
 private source text or depend on private-repository credentials.
 
-Local S3 evidence at mono `0bc8027738be53d02c185d84851d46e7e8cd3819`, skills-scripts
-`76713bdd9d746438acc3c061d26f69dfa3c736d4`, C++ `6ee3d62`, and lmok `128dc032`:
-1006 documents (503 seeds, 503 seeded mutations), 190 accepted valid sources,
-699 agreeing compiler/grammar verdicts, and 307 divergences classified above.
-No compiler-oracle failures remained. The required grammar-corruption control
-is in `tests/grammar/test_tree_sitter_differential.py`.
+Local f-string follow-up evidence at mono `bc5646d07cc59e6c940cc2312276ed0aa7bdcb6a`,
+C++ `6ee3d62`, lmok corpus `128dc032`, and the grammar pins above: 1,164 documents
+(388 seeds, including seven deterministic f-string inputs; 776 seeded mutations),
+49 accepted valid sources, 834 agreeing verdicts and 330 documented divergences.
+No compiler-oracle failures remained. The required grammar-corruption control is
+in `tests/grammar/test_tree_sitter_differential.py`.

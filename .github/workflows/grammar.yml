@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: lmctl-ai/tree-sitter-lmcode
-          ref: c9d5021cc98982f558937298e4add9a4f79c574a
+          ref: 24269b9770e910982d5cf134c03cd830f96ce97a
           path: corpora/tree-sitter-lmcode
           persist-credentials: false
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c

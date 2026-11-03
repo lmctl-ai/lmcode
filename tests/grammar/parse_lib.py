@@ -33,7 +33,7 @@ def rule_inventory():
 def build_parser():
     from lark import Lark
     grammar = translate(grammar_source())
-    return Lark(grammar, start='program', parser='lalr', lexer='basic', propagate_positions=False)
+    return Lark(grammar, start='program', parser='lalr', lexer='contextual', propagate_positions=False)
 
 
 class Verdict:

@@ -226,6 +226,24 @@ def collect_inputs(args: argparse.Namespace, temp: Path) -> tuple[list[Document]
                 tree_source=tree_source, compiler_source=compiler_source,
                 compiler_name=str(path), compiler_cwd=compiler_corpus,
                 origin=f"tree-sitter-{language}-corpus"))
+    # Deterministic formatted-string seeds exercise nested expressions and
+    # escapes in the compiler/tree-sitter differential independently of the
+    # grammar corpus count. Keep invalid forms here as compiler refusal seeds.
+    fstring_seeds = (
+        ('fstring-scalar', 'let value = f"value={str(7)}";'),
+        ('fstring-nested-expression', 'let value = f"value={str((2 + 3) * 4)}";'),
+        ('fstring-literal-braces', 'let value = f"{{literal}}";'),
+        ('fstring-escape', 'let value = f"line\\n{str(1)}";'),
+        ('fstring-no-nested-format', 'let value = f"{f"nested"}";'),
+        ('fstring-unclosed-field', 'let value = f"{str(1)";'),
+        ('fstring-format-spec-refused', 'let value = f"{str(1):04}";'),
+    )
+    for label, content in fstring_seeds:
+        path = compiler_corpus / f"lmcode-fstring-{len(documents):05d}.lms"
+        wrapped = f'program = _lmcode_ schema={json.dumps(str(empty_schema))};\n{content}\nend _lmcode_\n'
+        documents.append(make_document(name=f"fstring-seed::{label}", language="lmcode",
+            tree_source=content, compiler_source=wrapped, compiler_name=str(path),
+            compiler_cwd=compiler_corpus, origin="formatted-string-seed"))
     return documents, sources
 
 
@@ -291,6 +309,14 @@ def compiler_verdict(cli: str, doc: Document, env: dict[str, str]) -> tuple[bool
 
 def divergence_class(doc: Document, message: str) -> str | None:
     lower = message.lower()
+    if (doc.language == "lmcode" and doc.origin == "formatted-string-seed"
+            and "undefined name 'f'" in lower):
+        return "published-baseline"
+    if (doc.language == "lmscript" and "fstrings" in doc.name.lower()
+            and "undefined function 'f'" in lower):
+        return "published-baseline"
+    if "import aliases were removed" in lower:
+        return "mainline-parser-change"
     if ('is not on path' in lower or 'not found (resolved ' in lower or 'unknown native module' in lower
             or 'not in the tool cache' in lower or 'install github:' in lower):
         return "external-schema"
