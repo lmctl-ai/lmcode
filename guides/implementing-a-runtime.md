@@ -204,7 +204,8 @@ lmcode-csharp/durable-memory/02-decisions.md; lmcode-cpp/include/dslvm.hpp:326).
 **not** round-trip: `0.1+0.2` prints `0.3`, a different binary64. Any protocol boundary that must
 preserve values — the landed `LMCODE_RETURN_BEGIN/END` frame is the concrete case — requires the
 language's shortest-round-trip formatter (C++17 `std::to_chars`, Go `strconv.FormatFloat(v,'g',-1,64)`,
-Rust `{:?}`/ryu, Java `Double.toString`; C# `G17` needs a parse-back check, it is not shortest).
+Rust `{:?}`/ryu, Java `Double.toString`, JavaScript `formatFloat` in `src/core/values.mjs`;
+C# `G17` needs a parse-back check, it is not shortest).
 Reusing F2S machinery for frame/result text is the WP25 F1 finding.
 (reports/wp25-consensus-review-T1Kimi.md F1; spec/host-protocol.md §"Planned, not current".)
 
@@ -281,7 +282,7 @@ finding"; spec/bytecode.md.)
 the WP11 fix, `increment [1.5]` for an `int` parameter was silently truncated to 1 by the C++
 runner, passed through as a float by Rust (`RUN_ERROR int operator applied to float`), and threw
 an uncaught `ArithmeticException` in Java; Rust's runner also ignored the `type` field of object
-arguments. All five runners now refuse any JSON kind that does not match the declared parameter
+arguments. The five original runners were fixed to refuse any JSON kind that does not match the declared parameter
 type (`conformance: bad call args: …`). Port the runner's conversion as carefully as the VM.
 (reports/wp11-differential-review-T1Fable.md F5; reports/wp11fix-T1Fable.md;
 lmcode-rust/conformance/src/main.rs.)
@@ -350,8 +351,8 @@ Default-registration spellings summarized (source: `lmcode-cpp/durable-memory/06
 
 ## What this guide could not verify
 
-- **Cross-port return-sink parity.** `template_render` registration is verified for all five
-  ports at the revisions in [std.md](../spec/std.md#template_render-status). That does not
+- **Cross-port return-sink parity.** `template_render` registration is verified for all six
+  runtimes at the revisions in [std.md](../spec/std.md#template_render-status). That does not
   alone establish return-sink parity; the additional JavaScript port passes its return and
   invocation gates at `6bf09cd`. Target the current 206-signature
   C++ catalog and verify each port's revision and return gate separately.
