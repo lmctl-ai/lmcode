@@ -3,7 +3,9 @@
 Status: current. DSLB v6 is the only format version any shipped runtime reads. It is emitted by the
 `_lmcode_` / `_dsl_` compiler (`lmscript/dsl.ts` in the lmscript mono tree, published as npm
 `@lmctl-ai/lmctl` ≥ 0.2.444) and read by the C++ (`lmcode-cpp`), Rust (`lmcode-rust`) and Go
-(`lmcode-go`) SDKs. v6 is an intentional break with v5 (R49): rule entries were appended after the
+(`lmcode-go`), Java (`lmcode-java`), C# (`lmcode-csharp`) and JavaScript
+(`lmcode-js`) SDKs. The [runtime map](../guides/implementing-a-runtime.md#the-six-runtimes-where-everything-lives)
+names their loader/verifier entry points. v6 is an intentional break with v5 (R49): rule entries were appended after the
 body line table. There is no backward compatibility; every other version is refused at load.
 
 Normative sources:
@@ -365,5 +367,7 @@ substring matching. Differences found while cross-checking `lmcode-rust/dslvm/sr
 - **Entry check order.** C++ refuses `nparams > nlocals` before comparing `nparams` with the
   interface's parameter count; Rust and Go compare the interface count first. Only files that are
   invalid in both ways observe a different first error.
-- **Dry mode.** `Context::set_dry` (preflight PLAN) exists only in the C++ SDK; the Rust and Go
-  `call`/`run` have no dry path (R49 WP11).
+- **Historical dry mode comparison.** At R49 WP11, `Context::set_dry` existed only
+  in C++ and Rust/Go had no dry call/run path. This is not a current implementation
+  inventory: JavaScript now supports `Context.setDry`, previews and invocation dry
+  metadata; see the [host guide](../guides/javascript-host.md).

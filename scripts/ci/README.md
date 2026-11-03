@@ -21,6 +21,7 @@ can be supplied through LMCODE_CPP/LMCODE_LMOK instead of cloning again:
 git clone https://github.com/lmctl-ai/lmcode-cpp scripts/ci/work/cpp
 git clone https://github.com/lmctl-ai/lmok scripts/ci/work/lmok
 git clone https://github.com/lmctl-ai/lmcode-cpp-sample scripts/ci/work/sample
+git clone https://github.com/lmctl-ai/lmcode-js scripts/ci/work/js
 make -C scripts/ci/work/sample all
 python3 -m venv scripts/ci/work/python
 source scripts/ci/work/python/bin/activate
@@ -29,6 +30,7 @@ source scripts/ci/install-compiler.sh
 export LMCODE_CPP="$PWD/scripts/ci/work/cpp"
 export LMCODE_LMOK="$PWD/scripts/ci/work/lmok"
 export LMCODE_SAMPLE="$PWD/scripts/ci/work/sample"
+export LMCODE_JS="$PWD/scripts/ci/work/js"
 bash scripts/ci/run-suite.sh
 ```
 
@@ -94,3 +96,11 @@ run unit/mutation/full conformance gates. The bundled sample is refreshed with
 sync-sample-suite.mjs and checked with npm run verify:pins and npm run sample-suite.
 SAMPLE_DIR is the runtime checkout for js; there is no lmcode-js-sample repository.
 No failed npm/conformance command is caught or converted to a successful cell.
+
+The [JavaScript guide](../../guides/javascript-host.md) is qualified by
+check-js-guide.py in the same ordinary documentation suite: its labeled schema,
+ESM host and lmcode program execute through the compiler and SDK, with exact
+stdout/exit/stderr checks. A changed expected result, a broken host callback and
+an extra unclassified example each fail. Set LMCODE_JS to a local JS checkout.
+The tutorial checker explicitly discovers its host into a temporary schema cache
+before --check; it never uses or populates the operator's schema cache.

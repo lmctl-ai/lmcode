@@ -52,7 +52,7 @@ A green corpus does not establish platform-independent performance limits,
 thread safety, resource usage, or arbitrary application policy.
 
 The nine return vectors and separate nine-fixture return gate now cover ResultSink
-payload/frame behavior. All five core runners pass 406/406 locally with the
+payload/frame behavior. At the original audit baseline, the five core runners passed 406/406 locally with the
 merged sink observers; terminal-frame adoption by application CLIs remains a
 separate integration step. Executing blocks and immutable `load_schema` descriptors
 landed in mono main at `0bc80277`; the pinned released compiler 0.2.444 predates
@@ -76,3 +76,13 @@ The nine return cases catch missing writes, lost body state, misplaced error
 locations, discarded partial state and frames emitted before entry completion.
 The entry's HALT return value is separate from the invocation sink. This extends
 test observations without changing DSLB v6 or relocating the canonical corpus.
+
+## JavaScript adoption (2026-11-03)
+
+The sixth runtime, lmcode-js at6bf09cd, adds a pure ESM/Node LTS implementation
+without moving the canonical corpus. It passes410 core,271 std,9 return,28 invocation
+and29 metadata cases from reference7cf0916, and its bundled sample passes123 cases.
+The shared matrix runs it on the same five native platforms as the original runtimes.
+These counts describe the newer pinned reference, not a rewrite of the historical
+audit above. See [JavaScript host guide](guides/javascript-host.md) for landed wp171
+manifest fixes and the remaining fatal-OOM containment limitation.

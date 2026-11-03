@@ -40,6 +40,15 @@ def same_diagnostic(actual, expected):
 with tempfile.TemporaryDirectory(prefix='tutorial ',dir=ROOT) as directory:
     work=Path(directory)
     shutil.copyfile(sample/'sample-suite/sample.dsl.json',work/'sample.dsl.json')
+    # Current --check never starts a host for schema discovery. Warm only this
+    # owned cache via explicit real discovery, exactly as the tutorial requires.
+    env['LMSCRIPT_TOOL_CACHE'] = str(work/'schema-cache')
+    discovery = work/'discover.lms'
+    discovery.write_text('host = load_schema(cli="lmcode-cpp-sample");\n', encoding='utf8')
+    discovered = subprocess.run([compiler, str(discovery)], cwd=work, env=env, capture_output=True)
+    if (discovered.returncode, discovered.stdout, discovered.stderr) != (0, b'', b''):
+        raise SystemExit('Tutorial explicit schema discovery failed: '+repr(discovered))
+
     for offset in range(0,30,2):
         case=offset//2+1
         if args.case is not None and args.case!=case: continue

@@ -12,7 +12,7 @@ python3 scripts/gen-std-signatures.py /path/to/lmcode-cpp/std/lmcode-std.schema.
 `--check` instead compares the committed file with a fresh generation and exits 1 on drift.
 
 Schema `lmcode_std_v3`, 206 signatures, SHA-256 of the exact schema bytes `1defd1be67bf11cf1780f7d890059cd2ac6fd506a7b7fa578e31b5ef124aa221`.
-Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149ff49c898eccc38c40e4cb45e737db1e6d`).
+Metadata from the companion docs file (SHA-256 `e8719ee2a581196cc602a055241d16e11e1313f29adb9c5645aeb6f30a531b93`).
 
 
 ## file (5)
@@ -21,7 +21,7 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 | --- | --- | --- |
 | `fn file_append(string, string) -> void` | Create or append all raw bytes to a regular file. | FUNCTION: PATH: OS reason |
 | `fn file_exists(string) -> bool` | Return true only when metadata identifies a regular file; missing and nonregular paths return false. | FUNCTION: PATH: OS reason |
-| `fn file_lines(string) -> StrList` | Read raw bytes and split on every LF, preserving CR and empty fields: empty file gives [""], and "a\n" gives ["a", ""]. Return an arena-owned StrList. | FUNCTION: PATH: OS reason; StrList object limit exceeded (65536) |
+| `fn file_lines(string) -> StrList` | Read raw bytes and split on every LF, preserving CR and empty fields: empty file gives [""], and "a\n" gives ["a", ""]. Return an arena-owned StrList. | FUNCTION: PATH: OS reason |
 | `fn file_read(string) -> string` | Read a complete regular file as raw bytes. | FUNCTION: PATH: OS reason |
 | `fn file_write(string, string) -> void` | Create or truncate a regular file and write all raw bytes. | FUNCTION: PATH: OS reason |
 
@@ -57,9 +57,9 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 | `fn str_is_int(string) -> bool` | Report whether the complete signed decimal token fits int64. | — |
 | `fn str_len(string) -> int` | Return the raw byte length, including NUL and invalid UTF-8 bytes. | — |
 | `fn str_lower(string) -> string` | Lowercase ASCII A-Z bytes; preserve every other byte. | — |
-| `fn str_match(string, string) -> bool` | Match a whole byte string with *, ?, classes, ranges, negation, and backslash escapes. | str_match: pattern exceeds the 2^27 work limit |
-| `fn str_repeat(string, int) -> string` | Repeat raw bytes; reject negative counts and results above 64 MiB. | str_repeat: count must be nonnegative and result at most 67108864 bytes |
-| `fn str_replace(string, string, string) -> string` | Replace nonoverlapping byte matches left to right; an empty search leaves bytes unchanged. Every result, including unchanged copies, is limited to 64 MiB. | str_replace: result must be at most 67108864 bytes |
+| `fn str_match(string, string) -> bool` | Match a whole byte string with *, ?, classes, ranges, negation, and backslash escapes. | — |
+| `fn str_repeat(string, int) -> string` | Repeat raw bytes; reject negative counts and platform-unrepresentable result sizes. | str_repeat: count must be nonnegative; str_repeat: result size exceeds platform capacity |
+| `fn str_replace(string, string, string) -> string` | Replace nonoverlapping byte matches left to right; an empty search leaves bytes unchanged. No implicit result-size budget. | str_replace: result size exceeds platform capacity |
 | `fn str_starts_with(string, string) -> bool` | Byte prefix comparison; an empty prefix matches. | — |
 | `fn str_substr(string, int, int) -> string` | Return a byte slice; clamp negative starts and overlong counts, with nonpositive counts empty. | — |
 | `fn str_to_float(string) -> float` | Parse the same complete decimal grammar as str_is_float; return 0.0 on invalid input, overflow or underflow to zero. Preserve valid signed zero. | — |
@@ -81,7 +81,7 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 
 | Signature | Summary | Errors |
 | --- | --- | --- |
-| `fn json_parse(string) -> Json` | Parse strict UTF-8 JSON eagerly; int64 integers, finite binary64 decimals, depth <=256, duplicate decoded keys rejected. | json_parse: REASON at byte N; Json object limit exceeded (65536) |
+| `fn json_parse(string) -> Json` | Parse strict UTF-8 JSON eagerly; int64 integers, finite binary64 decimals, depth <=256, duplicate decoded keys rejected. | json_parse: REASON at byte N |
 | `method Json.as_bool() -> bool` | Read a boolean. | Json.as_bool: expected bool |
 | `method Json.as_float() -> float` | Read binary64; integer conversion may round. | Json.as_float: expected number |
 | `method Json.as_int() -> int` | Read a signed int64 integer. | Json.as_int: expected int |
@@ -89,7 +89,7 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 | `method Json.at(int) -> Json` | Borrow an array child. | Json.at: expected array; Json.at: index out of range: N |
 | `method Json.get(string) -> Json` | Borrow an object member. | Json.get: expected object; Json.get: missing key |
 | `method Json.has(string) -> bool` | Test a decoded object key. | Json.has: expected object |
-| `method Json.keys() -> StrList` | Snapshot keys in insertion order. | Json.keys: expected object; StrList object limit exceeded (65536) |
+| `method Json.keys() -> StrList` | Snapshot keys in insertion order. | Json.keys: expected object |
 | `method Json.kind() -> string` | Return null/bool/int/float/string/array/object. | — |
 | `method Json.len() -> int` | Count array items or object keys. | Json.len: expected array or object |
 | `method Json.to_json() -> string` | Emit compact tokens preserving number/string spellings and object order. | — |
@@ -98,22 +98,22 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 
 | Signature | Summary | Errors |
 | --- | --- | --- |
-| `fn float_list() -> FloatList` | Construct an empty FloatList in the active collection arena. | FloatList object limit exceeded (65536) |
-| `fn float_map() -> FloatMap` | Create an insertion-ordered byte-key map. | FloatMap object limit exceeded (65536) |
-| `fn float_pq() -> FloatPQ` | Create an empty FloatPQ in the run arena. | FloatPQ object limit exceeded (65536) |
-| `fn float_queue() -> FloatQueue` | Create an empty FloatQueue in the run arena. | FloatQueue object limit exceeded (65536) |
-| `fn float_stack() -> FloatStack` | Create an empty FloatStack in the run arena. | FloatStack object limit exceeded (65536) |
-| `fn int_list() -> IntList` | Construct an empty IntList in the active collection arena. | IntList object limit exceeded (65536) |
-| `fn int_map() -> IntMap` | Create an insertion-ordered byte-key map. | IntMap object limit exceeded (65536) |
-| `fn int_pq() -> IntPQ` | Create an empty IntPQ in the run arena. | IntPQ object limit exceeded (65536) |
-| `fn int_queue() -> IntQueue` | Create an empty IntQueue in the run arena. | IntQueue object limit exceeded (65536) |
-| `fn int_stack() -> IntStack` | Create an empty IntStack in the run arena. | IntStack object limit exceeded (65536) |
-| `fn str_list() -> StrList` | Construct an empty StrList in the active collection arena. | StrList object limit exceeded (65536) |
-| `fn str_map() -> StrMap` | Construct an empty insertion-ordered StrMap in the active collection arena. | StrMap object limit exceeded (65536) |
-| `fn str_pq() -> StrPQ` | Create an empty StrPQ in the run arena. | StrPQ object limit exceeded (65536) |
-| `fn str_queue() -> StrQueue` | Create an empty StrQueue in the run arena. | StrQueue object limit exceeded (65536) |
-| `fn str_split(string, string) -> StrList` | Split raw bytes on every nonoverlapping nonempty separator into a StrList. | str_split: separator must not be empty; StrList object limit exceeded (65536) |
-| `fn str_stack() -> StrStack` | Create an empty StrStack in the run arena. | StrStack object limit exceeded (65536) |
+| `fn float_list() -> FloatList` | Construct an empty FloatList in the active collection arena. | — |
+| `fn float_map() -> FloatMap` | Create an insertion-ordered byte-key map. | — |
+| `fn float_pq() -> FloatPQ` | Create an empty FloatPQ in the run arena. | — |
+| `fn float_queue() -> FloatQueue` | Create an empty FloatQueue in the run arena. | — |
+| `fn float_stack() -> FloatStack` | Create an empty FloatStack in the run arena. | — |
+| `fn int_list() -> IntList` | Construct an empty IntList in the active collection arena. | — |
+| `fn int_map() -> IntMap` | Create an insertion-ordered byte-key map. | — |
+| `fn int_pq() -> IntPQ` | Create an empty IntPQ in the run arena. | — |
+| `fn int_queue() -> IntQueue` | Create an empty IntQueue in the run arena. | — |
+| `fn int_stack() -> IntStack` | Create an empty IntStack in the run arena. | — |
+| `fn str_list() -> StrList` | Construct an empty StrList in the active collection arena. | — |
+| `fn str_map() -> StrMap` | Construct an empty insertion-ordered StrMap in the active collection arena. | — |
+| `fn str_pq() -> StrPQ` | Create an empty StrPQ in the run arena. | — |
+| `fn str_queue() -> StrQueue` | Create an empty StrQueue in the run arena. | — |
+| `fn str_split(string, string) -> StrList` | Split raw bytes on every nonoverlapping nonempty separator into a StrList. | str_split: separator must not be empty |
+| `fn str_stack() -> StrStack` | Create an empty StrStack in the run arena. | — |
 | `method FloatList.add(float) -> FloatList` | Append a float and return the receiver. | — |
 | `method FloatList.at(int) -> float` | Return the element at a zero-based index. | FloatList.at: index out of range: i |
 | `method FloatList.clear() -> FloatList` | Remove elements and return the receiver. | — |
@@ -197,11 +197,11 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 | `method StrMap.get_or(string, string) -> string` | Return a byte-key value or the fallback. | — |
 | `method StrMap.has(string) -> bool` | Test byte-key presence. | — |
 | `method StrMap.key_at(int) -> string` | Return the insertion-order key at a zero-based index. | StrMap.key_at: index out of range: i |
-| `method StrMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | StrList object limit exceeded (65536) |
+| `method StrMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
 | `method StrMap.len() -> int` | Return insertion-order entry count. | — |
 | `method StrMap.remove(string) -> bool` | Remove a key and report whether it existed. | — |
 | `method StrMap.set(string, string) -> StrMap` | Insert or replace a value while preserving an existing key position; removal tombstones compact on key_at. | StrMap.set: index out of range: i |
-| `method StrMap.values() -> StrList` | Allocate an independent StrList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | StrList object limit exceeded (65536) |
+| `method StrMap.values() -> StrList` | Allocate an independent StrList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
 | `method StrPQ.clear() -> StrPQ` | Remove all items; return self; reset PQ insertion sequence. | — |
 | `method StrPQ.empty() -> bool` | Return whether there are no items. | — |
 | `method StrPQ.len() -> int` | Return the number of items. | — |
@@ -227,10 +227,10 @@ Metadata from the companion docs file (SHA-256 `f0a4528e55d495eba31f61185118149f
 
 | Signature | Summary | Errors |
 | --- | --- | --- |
-| `method FloatMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | StrList object limit exceeded (65536) |
-| `method FloatMap.values() -> FloatList` | Allocate an independent FloatList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | FloatList object limit exceeded (65536) |
-| `method IntMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | StrList object limit exceeded (65536) |
-| `method IntMap.values() -> IntList` | Allocate an independent IntList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | IntList object limit exceeded (65536) |
+| `method FloatMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
+| `method FloatMap.values() -> FloatList` | Allocate an independent FloatList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
+| `method IntMap.keys() -> StrList` | Allocate an independent StrList snapshot of keys in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
+| `method IntMap.values() -> IntList` | Allocate an independent IntList snapshot of values in insertion order; later map/list mutations do not alias. Preserve raw bytes and float payload bits. | — |
 
 ## return (24)
 

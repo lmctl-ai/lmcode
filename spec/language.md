@@ -38,7 +38,7 @@ context the host hands it. The host owns the process, the objects and their life
 read context objects, call their methods and the host functions, and create local variables. The
 released 0.2.444 chunk has no lmscript return value: its effects are the calls it makes.
 Mainline slice 3 additionally writes a separate invocation-owned return sink (§2). The compiler only verifies and compiles
-the chunk (R05); a native runtime (`lmcode-cpp`, `-rust`, `-go`, …) executes it. One block compiles
+the chunk (R05); a native runtime (`lmcode-cpp`, `-rust`, `-go`, `-java`, `-csharp`, `-js`) executes it. One block compiles
 to one bytecode file (R26).
 
 The language is strongly and statically typed; its named types come from a schema the host supplies

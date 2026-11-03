@@ -1,9 +1,13 @@
-# Implementing an lmcode runtime — milestones, pitfalls, and the five ports
+# Implementing an lmcode runtime — milestones, pitfalls, and the runtime ports
 
 Status: current. This guide is for a developer implementing a new lmcode bytecode runtime in
-another language (the `lmcode-<lang>` pattern: C++, Rust, Go, Java and C# exist today). It does
+another language (the `lmcode-<lang>` pattern: C++, Rust, Go, Java, C# and JavaScript exist today). It does
 not restate the format or protocol; it orders the work, names the gate that proves each step, and
-collects the mistakes the five existing ports already made so the sixth does not repeat them.
+collects the original five ports' mistakes and the current JavaScript boundary notes so new ports do not repeat them.
+
+JavaScript's guide and SDK main are the current source for its representation and
+resource contract. Older port-specific quotas mentioned in the historical pitfalls
+below are not implicit JS limits; its VM has no instruction, memory or object budget.
 
 Normative sources (read these first; this guide cites, not copies):
 
@@ -85,11 +89,11 @@ Compare the compiler pin separately: current compiler/C++ serialization differs 
 the signature sets match. Do not infer compatibility from the shared v3 name. Add
 a `scripts/sync-std.sh`-style script that copies from the canonical repo and verifies the digest.
 Register the catalog by default in the registry constructor and provide the explicit opt-out —
-the five existing spellings are in the per-language table below; a new runtime needs its own pair
+the six current spellings are in the per-language table below; a new runtime needs its own pair
 (e.g. `Registry()` / `Registry(StdMode::Disabled)`). Registration is idempotent; testing helpers
 (`print`, `assert_close`) are **not** std and stay host-registered. Collection handles live in a
 per-run arena with a 65,536-object budget (P7). One catalog group per milestone-sized commit;
-`template_render` is registered by all five ports at the named revisions in
+`template_render` is registered by all six ports at the named revisions in
 [std.md](../spec/std.md#template_render-status); verify a new port independently.
 
 Done: `--lmcode-signatures`-equivalent output matches `lmscript --lmcode-signatures` on the merged
@@ -176,7 +180,7 @@ Gate: `python3 sample-suite/run-suite.py /path/to/lmcode-<lang>-sample` passes a
 which includes manifest hash validation, `check-compile-errors.py` and `protocol.py` before any
 case runs.
 
-## Pitfalls from the five ports
+## Pitfalls from the original five ports
 
 Each pitfall is real: it was either found by the WP11 fuzz/differential review
 (`reports/wp11-differential-review-T1Fable.md`, fixed by `reports/wp11fix-T1Fable.md`), recorded
@@ -266,7 +270,9 @@ reports/wp11-differential-review-T1Fable.md F4.)
 fuzzing and are now spec: (a) duplicate entry names are refused (`duplicate entry name 'NAME'`),
 because hosts dispatch entries by name; (b) a hidden local is compiler-owned in **every** region
 and `STORE_LOCAL` to any hidden local is refused — the stricter Rust reading won over the other
-four; (c) dry mode (`Context::set_dry`) is a C++-only host feature, so a new port does not owe one.
+four; (c) at that review baseline dry mode (`Context::set_dry`) was a C++-only host feature.
+The JavaScript SDK now implements `Context.setDry` and per-callback previews; current
+invocation dry metadata is specified in the host protocol, not by that historical inventory.
 Vectors `load-entry-dup-name` and `load-entry-hidden-store` pin (a) and (b).
 (reports/wp11-differential-review-T1Fable.md F2/F3/F7; reports/wp11fix-T1Fable.md §"Decisions per
 finding"; spec/bytecode.md.)
@@ -319,10 +325,11 @@ vectors never require it and a port must not reject valid programs that a refere
 accepts. (lmcode-cpp/durable-memory/02-architecture-and-decisions.md;
 lmcode-cpp/durable-memory/04-gotchas-and-limits.md; lmcode-java/durable-memory/03-limits.md.)
 
-## The five ports: where everything lives
+## The six runtimes: where everything lives
 
-Paths verified against the clones on 2026-10-30. "Sample" columns point at the sibling
-`lmcode-<lang>-sample` repos.
+Original five-port paths verified on 2026-10-30; JavaScript checked at `6bf09cd`
+on 2026-11-03. Sample columns name separate repos except JS, whose host is bundled.
+See the [JavaScript host guide](javascript-host.md) for checked source examples and review status.
 
 | Port | Loader / VM / verifier | Std catalog | Conformance runner | Sample host |
 |---|---|---|---|---|
@@ -332,17 +339,21 @@ Paths verified against the clones on 2026-10-30. "Sample" columns point at the s
 | Java (`lmcode-java`) | single package `io.lmctl.lmcode` under `src/main/java`: `Program.java` (load + entry API), `Reader.java`, `Verifier.java`, `Execution.java` (VM), `Registry.java`, `Value.java`, `VmString.java`, `VmException.java`, `Formatting.java` (`formatG15`) | `Stdlib.java` + `Std{String,Math,Collections,Containers,File,Json,Testing}.java`; `Registry()` defaults to std, `Registry(false)` opts out; `PinVerifier.java` checks the canonical bytes | `ConformanceRunner.java` (`main` takes vector directories); `EntryChecks.java` covers the entry refusals; wired into `pom.xml` test phase | `lmcode-java-sample/src/main/java/io/lmctl/sample/Main.java`, `Shop.java` |
 | C# (`lmcode-csharp`) | `src/LmCode/`: `Program.cs`, `Reader` inside Program, `Verifier.cs`, `Execution.cs`, `Registry.cs`, `Values.cs`, `Errors.cs`; csproj enables AOT/trim analyzers | `src/LmCode/Stdlib/*.cs` (`StandardCatalog.cs` aggregates; `new Registry()` / `new Registry(includeStd: false)`; `Std.RegisterStd` idempotent) | `conformance/LmCode.Conformance/Program.cs` (console project) | `lmcode-csharp-sample/src/Program.cs`, `Shop.cs`, `Conversions.cs` |
 
+| JavaScript (`lmcode-js`) | `src/core/{program,verifier,vm,registry,values}.mjs`; pure ESM, BigInt ints, byte strings | `src/std/*.mjs`; `createRegistry()` registers 206 signatures, `new Registry()` starts empty; locks verified by `scripts/sync-std.mjs` | `conformance/run.mjs`, `return-run.mjs`, `invocation-run.mjs`, `metadata-run.mjs`; `npm run conformance` | Bundled `lmcode-js/sample/main.mjs` and `sample/host.mjs`; no separate JS sample repo |
+
 Default-registration spellings summarized (source: `lmcode-cpp/durable-memory/06-stdlib-catalog.md`
 §"Default registration and opt-out", updated for the Go/Java current API): C++ `Registry()` /
 `Registry(StdMode::Disabled)`; Rust `Registry::new()` / `Registry::new_without_std()`; Go
 `NewRegistry()` / `NewRegistryWithoutStd()`; Java `Registry()` / `Registry(false)`; C#
-`new Registry()` / `new Registry(includeStd: false)`.
+`new Registry()` / `new Registry(includeStd: false)`; JavaScript `createRegistry()` /
+`new Registry()` (empty).
 
 ## What this guide could not verify
 
 - **Cross-port return-sink parity.** `template_render` registration is verified for all five
   ports at the revisions in [std.md](../spec/std.md#template_render-status). That does not
-  establish return-sink parity (slice 2 remains in progress); target the current 206-signature
+  alone establish return-sink parity; the additional JavaScript port passes its return and
+  invocation gates at `6bf09cd`. Target the current 206-signature
   C++ catalog and verify each port's revision and return gate separately.
 - **Kotlin/Scala sample repos.** `lmcode-kotlin-sample` and `lmcode-scala-sample` clones exist in
   the team workspace, but there is no corresponding `lmcode-kotlin` / `lmcode-scala` runtime repo

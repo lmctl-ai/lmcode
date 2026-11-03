@@ -1,6 +1,6 @@
 # Writing lmcode programs — a tutorial
 
-Status: verified with published `@lmctl-ai/lmctl` **0.2.450** and the `lmcode-cpp-sample` reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
+Status: verified with published `@lmctl-ai/lmctl` **0.2.456** and the `lmcode-cpp-sample` reference host. This is the tutorial for people who **write** lmcode programs; it teaches by
 example and cites the specs instead of repeating them:
 
 - Language rules (types, operators, statements, functions, rule entries): `spec/language.md`.
@@ -19,7 +19,7 @@ the host/catalog; runtime stdout examples are exact.
 
 Two things: the **compiler** and a **host**. An lmcode program is declared in an `_lmcode_` block and executes through `run_lmcode`; the host owns its context and returns its typed result. The program handle is opaque, and the runtime manages the bytecode transfer.
 
-**The compiler** ships as `@lmctl-ai/lmctl` (Node 24 required). Install 0.2.450 or newer into a private prefix; it provides `run_lmcode`, `lmcode_build`, `load_schema`, typed results, and the `--lmcode-schema` flags. Set `LMSCRIPT_BIN` to the installed `lmscript` executable and put its directory on PATH.
+**The compiler** ships as `@lmctl-ai/lmctl` (Node 24 required). Install 0.2.456 or newer into a private prefix; it provides `run_lmcode`, `lmcode_build`, `load_schema`, typed results, and the `--lmcode-schema` flags. Set `LMSCRIPT_BIN` to the installed `lmscript` executable and put its directory on PATH.
 
 **The reference host** is `lmcode-cpp-sample`, a small shop application (C++17, Make, Python 3 —
 nothing else). Clone it and build:
@@ -29,6 +29,11 @@ git clone https://github.com/lmctl-ai/lmcode-cpp-sample
 cd lmcode-cpp-sample && make
 export PATH="$PWD/build:$PATH"
 ```
+
+Before a cold `--check` using `cli=`, explicitly discover the host in a real script
+with `host = load_schema(cli="lmcode-cpp-sample");`. The compiler caches that schema;
+check/dry modes never start an uncached host. CI performs this discovery in a private
+temporary cache before checking the examples.
 
 Sanity check — every lmcode host answers these flags (`spec/host-protocol.md` §"Flags"):
 
@@ -499,8 +504,8 @@ makes that automatic since check and compile always query the current host.
 The examples use the compile-only inline form still available on the verified
 compiler, followed by explicit host execution with the renamed flag. Mainline
 also supports `$return`, reverse extraction, `load_schema`, executable descriptor
-blocks and explicit `out=` compilation. All eight sample hosts now emit the
-terminal return frame. Earlier published compilers cannot be paired with the
+blocks and explicit `out=` compilation. All eight separate sample hosts, plus the bundled JavaScript sample in
+[lmcode-js](javascript-host.md), emit the terminal return frame. Earlier published compilers cannot be paired with the
 renamed host options: there is no alias or automatic fallback.
 
 ## Where to go next

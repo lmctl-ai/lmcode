@@ -22,6 +22,7 @@ jobs:
       COMPILER_VERSION: ${{ inputs.compiler_version || vars.LMCODE_COMPILER_VERSION }}
       LMCODE_CPP: ${{ github.workspace }}/scripts/ci/work/cpp
       LMCODE_LMOK: ${{ github.workspace }}/scripts/ci/work/lmok
+      LMCODE_JS: ${{ github.workspace }}/scripts/ci/work/js
       LMCODE_SAMPLE: ${{ github.workspace }}/scripts/ci/work/sample
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -44,6 +45,12 @@ jobs:
           repository: lmctl-ai/lmcode-cpp-sample
           ref: main
           path: scripts/ci/work/sample
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: lmctl-ai/lmcode-js
+          ref: main
+          path: scripts/ci/work/js
           persist-credentials: false
       - name: Install grammar dependency in a private Python environment
         run: |

@@ -238,3 +238,15 @@ A dry failure similarly appends the marker after existing failure keys, includin
 `part` when present. Real envelopes omit `dry`. Consumers require true for a dry
 invocation and reject the marker on real invocations. This marker identifies the
 invocation mode; it does not claim arbitrary host code had no effects.
+
+## JavaScript implementation
+
+The JavaScript host SDK implements this collector contract at `lmcode-js` revision
+`6bf09cd`: `InvocationResults.fromCommand`, `select`, `complete`, `fail` and
+`writeFrame`, with `resultContractFromSchema` and owned `ResultSink` values.
+Version-1 numeric-token validation and pre-collector dry markers are fixed by
+wp171 and qualified by all29 canonical metadata cases. The
+[JavaScript host guide](../guides/javascript-host.md) shows the real registry,
+byte/BigInt boundary, per-slot lifecycle and terminal write. No native SDK ABI
+or bytecode format changes are needed. The eight separate sample hosts and the
+bundled JS sample remain distinct adapter implementations of the same contract.

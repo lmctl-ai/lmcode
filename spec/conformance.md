@@ -293,7 +293,7 @@ parts, wrong counts, bare payloads and partial-result failure shapes.
 ## Dry host envelope fixture set (H0)
 
 The C++ reference SDK owns the canonical offline fixture bytes used by the Rust,
-Go, Java, and C# ports. Fixtures pair the same schema and bytecode with version-1
+Go, Java, C# and JavaScript ports. Fixtures pair the same schema and bytecode with version-1
 metadata containing `dry:true`; envelope goldens are authored expectations, not
 captured runtime output. Keep real-mode goldens unchanged. At minimum, dry success
 is `{"ok":true,"result":0,"dry":true}` and a dry run failure is
@@ -303,3 +303,23 @@ Each SDK must verify defaults skip effectful real callbacks, explicit previews r
 once, `dry(real)` reads the fixture once, real execution still invokes only the real
 callback, and all dry envelopes carry the mode marker. The C++ suite also pins
 fresh collection dummies and per-slot result sinks.
+
+## JavaScript runtime and canonical sync
+
+`lmcode-js` is the sixth implementation, not a new corpus owner. At `6bf09cd`,
+it passes C++ reference `7cf0916`'s 410 core/271 standard vectors,9 return fixtures,
+28 invocation goldens and29 metadata-error cases. These newer counts supplement
+the explicitly revision-pinned historical counts above. Its bundled sample passes
+123 exact byte/exit cases and23 compiler refusals. Manifest-validation fixes from
+wp171 are landed, including numeric underflow and early dry markers. Fatal V8 heap
+exhaustion remains outside the synchronous SDK's catchable-failure contract.
+
+With LMCODE_CPP_DIR naming the selected reference checkout, run the SDK's
+scripts/sync-std.mjs, scripts/sync-vectors.mjs and scripts/sync-sample-suite.mjs
+with Node. The vector script copies all four conformance directories; sample files
+are copied to sample-suite/corpus. Source-commit/SHA-256 locks are checked by
+npm run verify:pins, which proves local integrity, not freshness without a sync.
+The cross-runtime workflow refreshes disposable JS copies from the same reference
+SHA as the five other runtimes, then runs npm conformance and the bundled sample.
+See the [JavaScript guide](../guides/javascript-host.md) for the exact API and
+[CI instructions](../scripts/ci/README.md) for the30-cell native matrix.

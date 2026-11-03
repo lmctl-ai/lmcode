@@ -5,7 +5,8 @@ Status: current (catalog version 3, `lmcode_std_v3`). The released 0.2.444 compi
 The catalog is the standard
 declaration surface every `_lmcode_` block type-checks against: the compiler merges it into the
 effective schema by default (`spec/schema.md` §"The implicit standard merge"). Default
-SDK registries target this surface; return-sink adoption varies by port (slice 2 is in progress). Runtime semantics belong to the SDKs; this document pins the
+SDK registries target this surface; the six runtime implementations are listed in the [runtime map](../guides/implementing-a-runtime.md#the-six-runtimes-where-everything-lives).
+JavaScript supplies the full 206-signature catalog and result operations at `6bf09cd`. Runtime semantics belong to the SDKs; this document pins the
 declarations and the pinning itself.
 
 Normative sources:
@@ -112,7 +113,7 @@ must not emit a return frame.
 Shared semantics (from the docs metadata's notes): all strings are raw bytes — lengths and
 offsets are byte-based, NUL and invalid UTF-8 survive; catalog failures raise RUN_HOST, file
 failures carry `FUNCTION: PATH: OS reason`; standard collection handles live in a per-run arena
-shared across all collection types with a 65,536-object budget; relative file paths use the
+shared across all collection types, without an implicit live-object budget; relative file paths use the
 process cwd without sandboxing; `Json` is immutable strict UTF-8 JSON (int64 integers, finite
 binary64, depth ≤ 256, duplicate decoded keys and BOM rejected); hex encodes lowercase and decodes
 ASCII mixed case, Base64 is canonical padded RFC 4648 §4; PQ is min-first with insertion-order
@@ -130,6 +131,9 @@ in `lmcode-std.docs.json`; the mono compiler source carries the same declaration
 - **lmcode-rust: implemented** at checked revision `8a4903e`; **lmcode-go: implemented** at
   checked revision `b5c1a8e`; **lmcode-java: implemented** at current revision `4bd50ca`; and
   **lmcode-csharp: implemented** at current revision `2f914ee` (each registers the function).
+
+- **lmcode-js: implemented** at `6bf09cd` (`src/std/json.mjs`); its standard
+  conformance gate runs the same canonical template cases.
 
 The 2026-10-30 consensus design's inventory is historical and predates the current registrations; do not use it as an availability matrix.
 
@@ -172,5 +176,5 @@ while their `StrMap` counterparts stay under `collections`. The table above foll
   the return overloads. `spec/language.md` §10 already records the release count; the catalog is
   authoritative.
 - The consensus document's "no SDK implements template_render" premise predates the current
-  C++, Go, Rust, Java, and C# registrations; the named revisions in the status table above are
+  C++, Go, Rust, Java, and C# registrations; JavaScript also registers it at `6bf09cd`. The named revisions in the status table above are
   authoritative for availability.
