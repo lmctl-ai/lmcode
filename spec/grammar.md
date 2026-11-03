@@ -26,6 +26,14 @@ after the tag. `qw(...)`/`qi(...)`/`qf(...)` are flat word-list literals for
 string/int/float collections, and `%(...)` is a map literal with `=>` entries.
 `json <<TAG ... TAG` is a normalized JSON document literal.
 
+### Inner formatted strings
+
+Inner formatted strings use the lowercase, single-line prefix `f"..."`. Each `{expr}` field
+uses the normal expression grammar and scalar string conversion; fields evaluate once in
+source order. `{{` and `}}` produce literal braces. The normal string escapes are accepted.
+Nested formatted strings and format specifiers are compiler errors (bind the inner value first).
+This is distinct from lmscript's outer `${...}` preprocessing.
+
 **Structure.** A program is a sequence of top-level items: function definitions
 (optionally annotated) and statements. A function is
 `@NAME? fn name(param: Type, ...) -> Type (implements Iface)? { ... }`; the annotation is

@@ -225,7 +225,7 @@ schema function or context variable named `json` wins, and `x.json <<T` is never
 |------|--------|----------|-------|
 | `int` | 64-bit two's complement integer | `0`, `-3` | source literals ±2^53 (§3.2); arithmetic wraps on overflow — no trap (R34); division/remainder by zero are run-time errors, by a literal zero a compile error |
 | `float` | IEEE-754 binary64 | `1.0`, `-0.5` | division and arithmetic follow IEEE; inf and NaN are ordinary values |
-| `string` | byte sequences | `"..."`, heredocs | may contain NUL/invalid UTF-8 at run time |
+| `string` | byte sequences | `"..."`, `f"..."`, heredocs | may contain NUL/invalid UTF-8 at run time |
 | `bool` | `true`, `false` | `true`, `false` | |
 | `void` | no value | none | return types only; a void result cannot be stored or used as a value |
 | object types | host handles | none | declared by the schema (§9); methods only, no fields; cannot be compared with `==`/`!=`; do not outlive the run |
@@ -275,9 +275,25 @@ VM performs no type checks (R34). Semantics pinned by the opcodes (`spec/bytecod
 - Float arithmetic is IEEE binary64 round-to-nearest ties-to-even, without fused multiply-add,
   fast-math or flush-to-zero.
 - `+` concatenates two strings with no size cap; use `str(x)` to convert a non-string right side.
+- `f"...{expr}..."` is a single-line formatted string. Fields accept scalar values supported by
+  `str` (int, float, bool, enum, string) and evaluate once, left to right. `{{` and `}}` emit
+  literal braces; the ordinary string escapes also apply. Nested formatted strings and format
+  specifiers are refused; bind an inner value first. Lowering uses the existing conversions and
+  concatenation instructions, so the runtime bytecode protocol is unchanged.
 - `&&`/`||` short-circuit; both sides must be bool. `!` needs a bool.
 - Receiver and arguments of any call or operator are evaluated once, left to right; schema-declared
   conversions are emitted after the source expressions have been evaluated.
+
+### Inner formatted strings (S1)
+
+Use a lowercase `f` directly before a single-line, double-quoted string:
+`f"Hello {name}; total={str(count)}"`. Each field contains exactly one ordinary expression;
+int, float, bool, enum and string values are converted to text. Expressions evaluate once,
+left to right. `{{` and `}}` emit literal braces; the usual `\n`, `\t`, `\r`, `\"` and `\\`
+escapes remain available. Empty fields, unmatched braces, nested formatted strings and
+format-specifier text are compile errors. Bind an inner formatted value first. This syntax
+lowers to existing string concatenation and scalar conversion operations; it adds no runtime
+opcode or host interface.
 
 ### Built-in math (S4, R27/R34)
 
