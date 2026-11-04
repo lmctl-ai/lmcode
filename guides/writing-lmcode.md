@@ -192,15 +192,11 @@ a+b+c
 {"ok":true,"result":null}
 ```
 
-### Formatted string interpolation (S1)
+### Lmscript body expansion
 
-A single-line `f"..."` string converts scalar fields with `str`; doubled braces emit literal
-braces. This replaces concatenation boilerplate such as the preceding example:
-
-```lmcode
-let name = "LMCODE";
-print(f"{name} has {str_len(name)} chars");
-```
+Formatted strings belong to the [lmscript wrapper](lmscript-body-expansion.md),
+which expands them into the ordinary source shown here before compiling lmcode.
+They are not standalone lmcode syntax.
 
 ### Lists and maps: `qw()` and `%(...)` (§3.5, §3.6, §6)
 

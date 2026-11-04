@@ -1,17 +1,17 @@
 {
   "lmscript": {
     "repository": "https://github.com/lmctl-ai/tree-sitter-lmscript",
-    "commit": "ff301218f388f30fcf40cd63d235070c162aa283",
+    "commit": "268fb894c981041bfed0233b6320178e100410e4",
     "mono_pin": "a9df5a8b793ddc90f572d5c5be5800ba8dc448dc"
   },
   "lmcode": {
     "repository": "https://github.com/lmctl-ai/tree-sitter-lmcode",
-    "commit": "24269b9770e910982d5cf134c03cd830f96ce97a",
+    "commit": "f7937605db4a07464a333d4ca900090b09baa44a",
     "mono_pin": "a9df5a8b793ddc90f572d5c5be5800ba8dc448dc"
   },
   "tree_sitter_cli": "0.27.1",
   "lmscript_npm": "@lmctl-ai/lmctl@0.2.450",
   "mono_corpus_pin": "0bc8027738be53d02c185d84851d46e7e8cd3819",
-  "lmcode_cpp_corpus_pin": "6ee3d62ea9b480aa6f42a592055233959f7f6162",
-  "lmok_corpus_pin": "128dc03224e95ed6671af81ed73f172f8233e7d3"
+  "lmcode_cpp_corpus_pin": "93bddf1dadff84791ea90e17d81a7af85a842f40",
+  "lmok_corpus_pin": "1e59ea8325f7c19a9b5c06a4bed95fb20aa2b9e3"
 }

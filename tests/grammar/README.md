@@ -65,3 +65,8 @@ text. It requires at least 500 seeded source and mutation documents. The gate ch
 accept/reject only; schema/type resolution and external `cli=` availability are not
 tree-sitter syntax contracts. Accepted differences must be listed in root
 [`DIVERGENCES.md`](../../DIVERGENCES.md).
+
+Body formatting is not in the core EBNF. It is documented in
+[the lmscript wrapper guide](../../guides/lmscript-body-expansion.md). The
+differential keeps explicit high-level seeds and classifies their legitimate
+raw-core/wrapped-compiler boundary; ordinary standalone formatting is refused.

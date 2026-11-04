@@ -264,10 +264,7 @@ def translate(ebnf_text):
             regex = render_terminal_regex(tree, term_bodies, memo, [])
             if '/' in regex:
                 raise EbnfError(f'terminal {name} regex contains /; extend the emitter')
-            # The lmcode f-string prefix must win over IDENT("f") followed by
-            # STRING_LIT; the higher lexical priority preserves the two-byte prefix.
-            priority = '.10' if name == 'FSTRING_START' else ''
-            out.append(f'{name}{priority}: /{regex}/')
+            out.append(f'{name}: /{regex}/')
             continue
         tree = parse_rhs(tokenize_body(body))
         def resolve(n):

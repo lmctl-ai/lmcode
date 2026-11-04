@@ -24,7 +24,7 @@ compiler=os.environ['LMSCRIPT_BIN']
 if os.name=='nt' and not compiler.lower().endswith(('.cmd','.bat','.exe')): compiler+='.cmd'
 env=dict(os.environ,PATH=str(host.parent)+os.pathsep+os.environ['PATH'])
 blocks=re.findall(r'^```text\n(.*?)^```',args.document.read_text(encoding='utf8'),re.M|re.S)
-formatted_blocks=re.findall(r'^```lmcode\n(.*?)^```',args.document.read_text(encoding='utf8'),re.M|re.S)
+formatted_blocks=re.findall(r'^```lmscript\n(.*?)^```',(ROOT/'guides/lmscript-body-expansion.md').read_text(encoding='utf8'),re.M|re.S)
 if len(blocks)!=31 or any('_lmcode_' not in blocks[i] for i in range(0,30,2)):
     raise SystemExit('Tutorial block layout changed: classify new examples before claiming verification')
 if len(formatted_blocks)>1:
@@ -72,12 +72,7 @@ with tempfile.TemporaryDirectory(prefix='tutorial ',dir=ROOT) as directory:
         print('PASS tutorial case',case)
     if formatted_blocks and args.case is None:
         formatted=work/'formatted-string.lms'
-        formatted.write_text('''program = _lmcode_ cli="lmcode-cpp-sample";
-'''+formatted_blocks[0].strip()+'''
-end _lmcode_
-result = run_lmcode(program);
-print(json_stringify(result));
-''',encoding='utf8')
+        formatted.write_text(formatted_blocks[0].strip()+'\n',encoding='utf8')
         check=subprocess.run([compiler,'--check',str(formatted)],env=env,capture_output=True)
         if check.returncode==0 and not check.stdout and not check.stderr:
             run=subprocess.run([compiler,str(formatted)],env=env,capture_output=True)
@@ -86,9 +81,9 @@ print(json_stringify(result));
                 '{"ok":true,"result":null}\n').encode('utf8')
             if (run.returncode,run.stdout,run.stderr)!=(0,expected,b''):
                 raise SystemExit('Tutorial formatted-string output mismatch: '+repr(run))
-            print('PASS tutorial formatted-string example (mainline S1)')
+            print('PASS tutorial formatted-string example (lmscript body expansion)')
         elif check.returncode==2 and b"undefined name 'f'" in check.stderr:
-            print('SKIP tutorial formatted-string example: published compiler predates S1')
+            print('SKIP tutorial formatted-string example: published compiler predates body formatting')
         else:
             raise SystemExit('Tutorial formatted-string compile mismatch: '+repr(check))
     if args.case is None:

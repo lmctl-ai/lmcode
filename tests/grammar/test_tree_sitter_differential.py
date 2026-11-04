@@ -13,6 +13,18 @@ SCRIPT = ROOT / "tests" / "grammar" / "tree_sitter_differential.py"
 
 
 class DifferentialGateTests(unittest.TestCase):
+    def test_body_format_boundary_is_narrow(self):
+        import sys
+        sys.path.insert(0, str(ROOT / "tests/grammar"))
+        from tree_sitter_differential import make_document, divergence_class
+        def doc(source, origin):
+            return make_document(name="boundary", language="lmcode", tree_source=source,
+                compiler_source=source, compiler_name="boundary.lms", compiler_cwd=ROOT,
+                origin=origin)
+        self.assertEqual(divergence_class(doc('let s=f"{7}";', "formatted-string-seed"), ""), "lmscript-body-expansion")
+        self.assertIsNone(divergence_class(doc('let s="ordinary";', "control-fixture"), ""))
+        self.assertIsNone(divergence_class(doc('let s=f"{7}";', "unclassified-source"), ""))
+
     def test_rejecting_a_valid_script_in_a_mutated_grammar_fails_the_gate(self):
         required = ("TREE_SITTER", "LMSCRIPT_BIN", "TREE_SITTER_LMSCRIPT_ROOT", "TREE_SITTER_LMCODE_ROOT")
         missing = [name for name in required if not os.environ.get(name)]

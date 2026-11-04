@@ -275,25 +275,12 @@ VM performs no type checks (R34). Semantics pinned by the opcodes (`spec/bytecod
 - Float arithmetic is IEEE binary64 round-to-nearest ties-to-even, without fused multiply-add,
   fast-math or flush-to-zero.
 - `+` concatenates two strings with no size cap; use `str(x)` to convert a non-string right side.
-- `f"...{expr}..."` is a single-line formatted string. Fields accept scalar values supported by
-  `str` (int, float, bool, enum, string) and evaluate once, left to right. `{{` and `}}` emit
-  literal braces; the ordinary string escapes also apply. Nested formatted strings and format
-  specifiers are refused; bind an inner value first. Lowering uses the existing conversions and
-  concatenation instructions, so the runtime bytecode protocol is unchanged.
 - `&&`/`||` short-circuit; both sides must be bool. `!` needs a bool.
 - Receiver and arguments of any call or operator are evaluated once, left to right; schema-declared
   conversions are emitted after the source expressions have been evaluated.
 
-### Inner formatted strings (S1)
-
-Use a lowercase `f` directly before a single-line, double-quoted string:
-`f"Hello {name}; total={str(count)}"`. Each field contains exactly one ordinary expression;
-int, float, bool, enum and string values are converted to text. Expressions evaluate once,
-left to right. `{{` and `}}` emit literal braces; the usual `\n`, `\t`, `\r`, `\"` and `\\`
-escapes remain available. Empty fields, unmatched braces, nested formatted strings and
-format-specifier text are compile errors. Bind an inner formatted value first. This syntax
-lowers to existing string concatenation and scalar conversion operations; it adds no runtime
-opcode or host interface.
+Lmscript can expand higher-level body constructs before this language is compiled;
+see [the wrapper guide](../guides/lmscript-body-expansion.md).
 
 ### Built-in math (S4, R27/R34)
 

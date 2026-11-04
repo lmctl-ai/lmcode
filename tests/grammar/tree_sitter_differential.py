@@ -310,8 +310,8 @@ def compiler_verdict(cli: str, doc: Document, env: dict[str, str]) -> tuple[bool
 def divergence_class(doc: Document, message: str) -> str | None:
     lower = message.lower()
     if (doc.language == "lmcode" and doc.origin == "formatted-string-seed"
-            and "undefined name 'f'" in lower):
-        return "published-baseline"
+            and not message and re.search(r'(?<![A-Za-z0-9_])f"', doc.tree_source)):
+        return "lmscript-body-expansion"
     if (doc.language == "lmscript" and "fstrings" in doc.name.lower()
             and "undefined function 'f'" in lower):
         return "published-baseline"
@@ -333,6 +333,8 @@ def divergence_class(doc: Document, message: str) -> str | None:
         "reserved", "conflicts", "cannot be", "must be", "requires ", "not allowed", "no implicit conversion",
         "has no effect", "unknown name", "unknown type", "does not implement", "interface ", "return is",
         "loop", "range", "duplicate", "schema", "argument", "property", "not a ",
+        "cannot assign ", "foreach needs a host collection", "must end with 'return expr;'",
+        "has no return value", "on a string needs a string on the right",
         "command: one command per line", "the dsl body is empty",
     )
     if any(term in lower for term in semantic):
@@ -449,7 +451,7 @@ def main() -> int:
             if tree_ok == compiler_ok:
                 counts["agreement"] += 1
                 continue
-            category = divergence_class(doc, message) if not compiler_ok and tree_ok else None
+            category = divergence_class(doc, message)
             if category:
                 counts["divergences"][category] = counts["divergences"].get(category, 0) + 1
                 report.append({"name": doc.name, "origin": doc.origin, "language": doc.language,

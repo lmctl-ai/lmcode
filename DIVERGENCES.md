@@ -8,8 +8,8 @@ read-only and its source text is never copied into this repository.
 
 Pins and source revisions are in `tests/grammar/tree-sitter-pins.json`. The
 published CI oracle is `@lmctl-ai/lmctl@0.2.450`; grammar commits are
-`tree-sitter-lmscript` `ff301218f388f30fcf40cd63d235070c162aa283` and
-`tree-sitter-lmcode` `24269b9770e910982d5cf134c03cd830f96ce97a`. The mono
+`tree-sitter-lmscript` `268fb894c981041bfed0233b6320178e100410e4` and
+`tree-sitter-lmcode` `f7937605db4a07464a333d4ca900090b09baa44a`. The mono
 language source pinned by both grammar repos is `a9df5a8b`; local mainline
 verification used `bc5646d07cc59e6c940cc2312276ed0aa7bdcb6a`.
 
@@ -39,14 +39,18 @@ source, remains a hard failure.
    reverse-template functions are on mono main as of the pin above, while the
    published 0.2.450 oracle does not include that entire change. The grammar
    corpus's planned block-handle `out=` case and comment-bearing splice case are
-   therefore expected compiler rejections at this npm pin. The S1 inner f-string
-   syntax is another mainline feature absent from 0.2.450. Its accepted-seed
-   differences are classified here; the mainline source compiler accepts them.
+   therefore expected compiler rejections at this npm pin. Body formatting is owned by lmscript and is classified separately below.
 5. **`mainline-parser-change`** — the source compiler has removed a syntax form
    that the separately pinned Tree-sitter lmscript corpus still accepts. The
    current example is the old import-alias spelling (`Import aliases were
    removed; a source module declares its package`). This is an upstream grammar
-   pin mismatch outside the inner lmcode formatted-string change.
+   pin mismatch outside the body-format layering move.
+
+6. **`lmscript-body-expansion`** — a successful high-level body-format seed is
+   checked through the lmscript wrapper, while the standalone lmcode parser
+   correctly rejects its unexpanded formatting syntax. Invalid format seeds must
+   still be refused. The lmscript-owned companion parser checks template syntax;
+   this classification does not grant formatting syntax to standalone lmcode.
 
 The operator's requested lmcode additions are syntax-safe in both grammars;
 their implementation status follows mono main, not the npm oracle. New grammar

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pin the formatted-string subset accepted by the normative grammar."""
+"""Pin the boundary: body formatting belongs to lmscript, not the core grammar."""
 import sys
 import unittest
 from pathlib import Path
@@ -13,9 +13,9 @@ class FormattedStringGrammarTests(unittest.TestCase):
     def setUpClass(cls):
         cls.parser = build_parser()
 
-    def test_accepts_nested_expression_escape_and_literal_braces(self):
+    def test_standalone_rejects_body_formatting(self):
         source = 'let n = 7; let text = f"{{value}}={str((n + 1) * 2)}\\n";'
-        self.assertTrue(parse_body(self.parser, source).ok)
+        self.assertFalse(parse_body(self.parser, source).ok)
 
     def test_rejects_nested_formatted_string(self):
         source = 'let text = f"{f\\"inner\\"}";'
