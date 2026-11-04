@@ -138,7 +138,7 @@ def validate_css(rules: list[dict], page: dict) -> None:
             elif name in {"page-break-before", "page-break-after"}:
                 require(value in {"auto", "always"}, f"unsupported page-break value: {value}")
             elif name == "size":
-                require(value in {"letter", "a4"}, f"unsupported page size: {value}")
+                require(value in {"letter", "a4", "Letter", "A4"}, f"unsupported page size: {value}")
 
 
 def validate_html(root: ET.Element, case_id: str, assets: dict[str, str]) -> None:

@@ -52,6 +52,8 @@ jobs:
           ref: main
           path: scripts/ci/work/js
           persist-credentials: false
+      - name: Verify shared document corpus source and bytes
+        run: python3 tests/html-doc-conformance/check.py
       - name: Install grammar dependency in a private Python environment
         run: |
           python3 -m venv "$RUNNER_TEMP/lmcode-python"
