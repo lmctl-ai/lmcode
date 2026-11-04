@@ -47,6 +47,7 @@ JavaScript example exercises BigInt, byte strings and the terminal result envelo
 | [spec/std.md](spec/std.md) + [spec/std-signatures.md](spec/std-signatures.md) | The standard catalog: ownership, byte-pinned locks, version history, and the generated 206-signature mainline list (181 in release 0.2.444) |
 | [spec/host-protocol.md](spec/host-protocol.md) | Host CLI flags, result/diagnostic records, exit codes, the adopted `LMCODE_RETURN` frame and legacy host behavior |
 | [spec/conformance.md](spec/conformance.md) | The conformance corpus and sample-suite: `.expect` protocols, vector counts, how to run them |
+| [tests/html-doc-conformance/README.md](tests/html-doc-conformance/README.md) | Cross-host html-doc@1/css-doc@1 corpus, pinned release baseline, and real/dry run instructions |
 | [guides/implementing-a-runtime.md](guides/implementing-a-runtime.md) | Runtime porting guide: milestones, 15 cited pitfalls, per-language file map |
 | [guides/javascript-host.md](guides/javascript-host.md) | JavaScript host SDK: registry, BigInt/byte strings, invocation metadata, dry mode and owned results |
 | [guides/writing-lmcode.md](guides/writing-lmcode.md) | Author tutorial with verified examples |

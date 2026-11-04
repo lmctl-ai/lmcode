@@ -1,7 +1,6 @@
 # Conformance coverage and current source of truth
 
-The corpus still lives in the existing repositories. This page is an inventory,
-not a new copy or a migration of canonical test data.
+The core bytecode, standard-library, and sample-host corpora remain in their existing repositories. This page inventories those sources plus the new cross-host document-profile baseline held here; it does not move or duplicate the core vectors.
 
 | Surface | Current home | What a green result proves |
 | --- | --- | --- |
@@ -9,6 +8,7 @@ not a new copy or a migration of canonical test data.
 | Standard library: 268 vectors | [C++ standard corpus](https://github.com/lmctl-ai/lmcode-cpp/tree/main/conformance/stdlib-vectors) | catalog operations and selected value/error partitions |
 | Native host integration: 114 cases (77 exit 0, 36 exit 3, 1 exit 4) + 23 compiler rejects | [shared sample suite](https://github.com/lmctl-ai/lmcode-cpp/tree/main/sample-suite) | byte-exact process output, exits, schema/signature protocol and source-wrapper reproduction |
 | Compiler/checker and outer-language behavior | [mono lmcode tests](https://github.com/lmctlhq/lmctl-mono/tree/main/lmscript/tests) | typing/schema rejection, splices/deferred checking, source mapping and check/dry-run behavior |
+| Paged HTML document profile baseline (html-doc@1/css-doc@1; current releases intentionally red) | [this repository](tests/html-doc-conformance) | normalized source structure/styles, asset pins, current host diagnostics, dry side-effect checks, PDF text/bounds/fonts, and DOCX OOXML structure |
 
 The core generator remains [in mono](https://github.com/lmctlhq/lmctl-mono/blob/main/lmscript/scripts/generate-dsl-conformance.ts).
 SDK ports copy committed corpus files with their existing sync scripts and digest
