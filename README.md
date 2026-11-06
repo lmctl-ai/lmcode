@@ -66,6 +66,16 @@ JavaScript example exercises BigInt, byte strings and the terminal result envelo
 | lmcode-{cpp,c,go,rust,csharp,java,kotlin,scala}-sample | Eight separate teaching hosts; JS additionally bundles its host in the runtime repo, sharing the pinned sample-suite | Green per port; synced by lock files |
 | [lmctl-ai/lmok](https://github.com/lmctl-ai/lmok) | Production host: tree-sitter lint tool using lmcode rule entries | Active; v6 entries drive `lmok check` |
 
+The four cloud hosts built on these runtimes ship recipe sets that run them against
+local emulators ("cloud SDK scripting against a simulator"): each `recipes/sim/`
+directory holds runnable `.lms` programs for static-site storage, job queues,
+provisioning (EC2 spot web server, Cloud Run, Functions applications), IAM policies
+and `--auth enforce` permission checks, plus a runner that boots the emulator:
+[lmaws/awssim](https://github.com/lmctl-ai/lmaws/blob/main/recipes/sim/README.md),
+[lmgcp/gcpsim](https://github.com/lmctl-ai/lmgcp/blob/main/recipes/sim/README.md),
+[lmoci/ocisim](https://github.com/lmctl-ai/lmoci/blob/main/recipes/sim/README.md),
+[lmazure/azuresim](https://github.com/lmctl-ai/lmazure/blob/main/recipes/sim/README.md).
+
 The compiler lives in the lmctl monorepo (`lmscript/dsl.ts`) and ships with
 `@lmctl-ai/lmctl`; it is not part of this repository.
 
