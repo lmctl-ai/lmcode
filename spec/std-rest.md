@@ -1,13 +1,14 @@
-# lmcode std module `rest` — an embedded REST server
+# lmcode std module `rest` — a REST server over stdio
 
 Status: **new, opt-in module** `lmcode_std_rest_v1` (not part of the default `lmcode_std_v3`
 catalog, whose 206-signature pin is unchanged). Canonical declarations:
-[`std/rest/lmcode-rest.schema.json`](../std/rest/lmcode-rest.schema.json) (20 signatures + one
+[`std/rest/lmcode-rest.schema.json`](../std/rest/lmcode-rest.schema.json) (18 signatures + one
 interface). Shared conformance suite: [`tests/rest-suite/`](../tests/rest-suite/README.md).
 
-A program starts an HTTP server, binds routes to **annotated SAM entries** (the `@NAME fn ... implements
-RestHandler` rule mechanism of [language.md §8](language.md)), and every request is answered by running
-the bound entry. The module follows the registration style of
+A program declares routes, binds them to **annotated SAM entries** (the `@NAME fn ... implements
+RestHandler` rule mechanism of [language.md §8](language.md)), and the host then serves **HTTP/1.1 messages over its standard streams**: requests are read from stdin, responses are
+written to stdout, and every request is answered by running the bound entry. **There is no network listener** — no
+socket, no port; the process is the server, which makes it embeddable behind any pipe, test harness or agent tool. The module follows the registration style of
 [lmmock](https://github.com/lmctl-ai/lmmock) (`route(method, path, annotation)`), generalised from a Go-only
 host to a standard module every runtime can provide.
 
@@ -27,14 +28,14 @@ fn create_user(x: RestExchange) -> void implements RestHandler {
 
 rest_route("GET",  "/users/{id}", "user");
 rest_route("POST", "/users",      "create");
-rest_listen(8080);
+rest_serve();
 end _lmcode_
 ```
 
 ## Why a separate, opt-in module
 
-The default catalog is merged into **every** `_lmcode_` block. A listener is a network capability, so it is
-not in that implicit surface: a lint rule or a data transform cannot open a port by accident. A host opts in by
+The default catalog is merged into **every** `_lmcode_` block. Taking over stdin/stdout is a host-level capability, so
+it is not in that implicit surface: a lint rule or a data transform cannot hijack the process streams by accident. A host opts in by
 declaring the module in its schema (merge `std/rest/lmcode-rest.schema.json` into the host schema; the std
 merge deduplicates identical `Json`-free declarations) **and** registering it in the runtime
 (`registerRest` / `register_rest` / …). A runtime that does not register the module refuses programs that
@@ -47,10 +48,8 @@ bind through the existing identifier annotation, and the published 0.2.456 compi
 interface RestHandler(exchange: RestExchange) -> void
 
 fn rest_route(string, string, string) -> void      # method, path template, annotation
-fn rest_listen(int) -> int                         # 127.0.0.1:PORT  (0 = ephemeral); returns the bound port
-fn rest_listen(string, int) -> int                 # HOST:PORT
-fn rest_stop() -> void
-fn rest_port() -> int                              # bound port; 0 while not listening
+fn rest_serve() -> void                            # after the body ends, serve stdin -> stdout until EOF or rest_stop()
+fn rest_stop() -> void                             # end serving after the current response is written
 
 # request (read-only)
 method RestExchange.method() -> string             # upper-case verb
@@ -83,29 +82,29 @@ the strict `Json` helpers when validity matters.
 
 1. The host registers the module in its registry, loads the program, and runs it through the module's
    controller (`RestRuntime.run(program, context)` or the language's spelling). The controller binds the
-   program so the std functions can reach its entries.
-2. The program **body** calls `rest_route` any number of times and then `rest_listen`.
-3. `rest_listen` validates, **before opening a socket**:
+   program so the std functions can reach its entries, and owns the input and output streams
+   (default: the process's stdin and stdout).
+2. The program **body** calls `rest_route` any number of times and then `rest_serve()`.
+3. `rest_serve` validates, **before any byte is read**:
    * at least one route is registered;
    * every route's annotation names exactly one entry whose interface is
      `interface RestHandler(RestExchange) -> void`; annotations are unique among `RestHandler` entries
      (entries implementing other interfaces are ignored);
    * route shapes are valid and unique (below).
-   A failure is `RUN_HOST` with a pinned message and nothing is bound. `HOST` must be an IP literal or
-   `localhost` (= `127.0.0.1`); a port outside 0–65535 is `rest: port N out of range 0..65535`; a bind failure is
-   `rest: cannot listen on HOST:PORT: REASON` (REASON is platform text, e.g. `EADDRINUSE`). A second `rest_listen` while
-   listening fails (`rest: server already listening`); `rest_route` after `rest_listen` fails
-   (`rest: routes are frozen once the server is listening`); `rest_route` from inside a handler fails the same way.
-4. The body continues and returns normally; the server keeps serving in the background. Requests that arrive
-   while the body is still running wait until it finishes.
-5. Each request runs its entry with a fresh `RestExchange`. Handler invocations are **serialized** (one VM
-   run at a time per registry), in the order requests finished parsing. An implementation may run handlers
-   concurrently only with isolated registries/arenas and atomic state; the observable contract is the same.
-6. `rest_stop()` (from the body, a handler, or the host's `close()`) stops accepting connections after the
-   in-flight response is flushed; `rest_port()` then returns 0. The same registry may listen again.
+   A failure is `RUN_HOST` with a pinned message. `rest_serve` does not block: it records that serving was requested.
+   A second `rest_serve` fails (`rest: rest_serve already called`); `rest_route` after `rest_serve` fails
+   (`rest: routes are frozen once rest_serve has been called`), including from inside a handler.
+4. When the body returns normally the controller **serves**: it reads requests from the input stream one at a
+   time and, for each, writes exactly one response to the output stream before reading the next. Handlers therefore run
+   strictly one at a time and never nest inside the body's VM run. A body that did not call `rest_serve`
+   (or called `rest_stop` first) simply ends and nothing is read.
+5. Serving ends — and the controller's `run` returns — when the input reaches EOF, when a handler (or the body) has called
+   `rest_stop()` and its response is written, or after a *framing error* (below). Bytes after that point are not read
+   and never answered. A request truncated by EOF is dropped without a response.
 
-Host options (not visible to lmcode): `maxBodyBytes` (default 1 MiB), `readTimeoutMs` (10 000) and an
-`onHandlerError(entryName, message)` callback (default: one line on stderr).
+Host options (not visible to lmcode): `input`/`output` streams, `maxBodyBytes` (default 1 MiB) and an
+`onHandlerError(entryName, message)` callback (default: one line on **stderr**). While serving, stdout belongs to the
+protocol: hosts must send `print` and diagnostics to stderr.
 
 ## Route templates
 
@@ -136,19 +135,22 @@ difference decides.
 * `HEAD` with no `HEAD` route falls back to the `GET` route; the body is not sent (headers, including
   `Content-Length`, are those of the `GET` response). `OPTIONS` is never implicit.
 
-## HTTP subset
+## HTTP subset (message framing over stdio)
 
-HTTP/1.1 over TCP, one request per connection (`Connection: close` on every response). Request line
-`METHOD SP target SP HTTP/1.0|1.1`; the target must start with `/` (query after `?`; a fragment is not
-allowed). Header section ≤ 16 KiB else **431**; names are case-insensitive. A body is read by
-`Content-Length` (≤ `maxBodyBytes` else **413**, decided from the header before the body is read);
-`Transfer-Encoding` on a request is **501**. A malformed request line, header, `Content-Length`, an
-invalid percent escape in the path or query, or a non-`/` target is **400**. A request not completed within
-`readTimeoutMs` is dropped (a 408 is optional). Query strings are `k=v` pairs separated by `&`, the first
-occurrence of a key wins, `+` is a space, `%XX` is decoded (lmcode strings are bytes: decoded bytes are
-not required to be UTF-8).
+The streams carry a sequence of HTTP/1.1 messages, framed exactly like HTTP keep-alive: a request is a head
+(`METHOD SP target SP HTTP/1.0|1.1`, headers, blank line) followed by `Content-Length` body bytes; each response is
+a status line, headers, blank line and `Content-Length` body bytes. There is no `Connection` header in either
+direction (the stream is the connection) and no pipelining concerns: responses are written in request order.
+The target must start with `/` (query after `?`; a fragment is not allowed). Names are case-insensitive.
 
-Responses: status line `HTTP/1.1 CODE REASON`, the exchange's headers, `Content-Length`, `Connection: close`.
+*Per-request* errors answer and **keep serving**: invalid percent escape in the path or query (**400**), no route (404), method
+not allowed (405). *Framing* errors cannot be resynchronised, so the module answers once and **ends serving**:
+a malformed request line, header or `Content-Length`, a non-`/` target (**400**); header section over 16 KiB
+(**431**, detected before the head ends); `Content-Length` over `maxBodyBytes` (**413**, from the header, body unread);
+`Transfer-Encoding` on a request (**501**). Query strings are `k=v` pairs separated by `&`, the first occurrence of a key
+wins, `+` is a space, `%XX` is decoded (lmcode strings are bytes: decoded bytes are not required to be UTF-8).
+
+Responses: status line `HTTP/1.1 CODE REASON`, the exchange's headers, then `Content-Length` (the length of the body, also for `HEAD`).
 `Content-Type` defaults to `text/plain; charset=utf-8` when the body is non-empty and none was set;
 `x.json` sets `application/json`. 204 and 304 never carry a body. `set_header` replaces a header of the same
 name (case-insensitively); it rejects an empty name, whitespace, `:`, CR or LF in a name, CR or LF in a value, and the
@@ -164,8 +166,7 @@ A handler that raises any run-time error yields 500 with that fixed body — the
 ## State
 
 `get`/`set`/`increment` give handlers server-wide string and counter state (the lmmock model); keys of the
-two maps are independent. State lives as long as the controller object and survives `rest_stop`/`rest_listen`.
-With serialized handlers no extra locking is observable; a concurrent implementation must make each call atomic.
+two maps are independent. State lives as long as the controller object. Handlers are strictly sequential, so no locking is observable.
 
 ## Runtime requirements
 
@@ -173,20 +174,26 @@ Each runtime provides (names follow the language's conventions):
 
 | Piece | Responsibility |
 |---|---|
-| `registerRest(registry, options)` → controller | registers the 20 signatures; **not** called by the default registry constructor |
-| `controller.run(program, context)` | binds the program, runs its body under the dispatch lock |
+| `registerRest(registry, options)` → controller | registers the 18 signatures; **not** called by the default registry constructor |
+| `controller.run(program, context)` | binds the program, runs the body, then serves the streams until serving ends (may be async in the language) |
 | `controller.dispatch(request)` | transport-independent core: `{method, target, headers, body}` → `{status, headers, body}`; this is what unit tests and the transport both use |
-| transport | an HTTP/1.1 listener implementing the subset above using the language's standard library only |
-| `controller.port`, `controller.close()` / `wait()` | observe and stop the server |
+| stream pump | the framing above over the host-supplied input/output (default stdin/stdout), standard library only |
+| `controller.stop()` | ends serving as `rest_stop()` does |
 
-`signatures()` of a registry with the module registered = default std signatures + exactly the 20 above;
+`signatures()` of a registry with the module registered = default std signatures + exactly the 18 above;
 `scripts/…` sync tooling pins `std/rest/lmcode-rest.schema.json` and the suite by SHA-256 (`rest.lock`,
 `rest-suite.lock`).
 
 ## Conformance
 
 [`tests/rest-suite/`](../tests/rest-suite/README.md) holds the shared program (`app.lms` → `app.dslb`, built
-by the published compiler), its host schema and `scenarios.json`: 37 sequential HTTP exchanges every runtime
-must reproduce byte for byte (status, selected headers, body, `Content-Length`, connection closing),
-ending with `rest_stop()` from a handler and a refused connection. Each runtime additionally keeps unit
-tests for the router, the request parser and the exchange validation rules.
+by the published compiler), its host schema and `scenarios.json`:
+
+* `stream` — 33 sequential exchanges written to **one** input stream and compared with the **one** output stream, ending
+  with `rest_stop()` from a handler followed by a request that must stay unanswered;
+* `fatal` — 4 framing errors, each on a fresh stream followed by a valid request: exactly one (error) response, then the end;
+* `silent` — 3 inputs (empty, truncated head, truncated body) that produce no output and end cleanly.
+
+Each runtime replays the suite through in-memory streams (unit level) **and** through its real process stdin/stdout
+(integration level, via a tiny serve CLI/test host), plus its own unit tests for the router, the head/body parser and the
+exchange validation rules.
