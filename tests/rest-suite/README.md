@@ -27,3 +27,10 @@ with `max_body_bytes` and a fresh state. No network is involved: the controller 
 
 Run each of the three groups on a fresh controller, once through in-memory streams and once through a real child process
 (stdin/stdout pipes) of a small serve host.
+
+## Pinning
+
+Runtimes copy this directory (all files) to their conformance fixtures and record a lock. Portable digest: sha256 over rows
+`<sha256(file)>  <relative path>\n`, paths sorted **bytewise**; in shell:
+`(cd DIR && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs sha256sum) | sha256sum`. Mark the fixtures `-text`/binary in
+`.gitattributes` (`*.dslb`, and no CRLF conversion for the JSON/lms files) so Windows checkouts keep the bytes.

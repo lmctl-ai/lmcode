@@ -106,6 +106,16 @@ Host options (not visible to lmcode): `input`/`output` streams, `maxBodyBytes` (
 `onHandlerError(entryName, message)` callback (default: one line on **stderr**). While serving, stdout belongs to the
 protocol: hosts must send `print` and diagnostics to stderr.
 
+### Pinned details
+
+* `rest_serve` checks in this order: already called (`rest: rest_serve already called`), no program bound
+  (`rest: no program is bound (run the program through the controller)`), then the route/annotation checks above.
+* Whitespace in route paths, header names and request targets means ASCII only (bytes `0x00–0x20`, `0x7f`); bytes such as `0xA0`
+  (UTF-8 `à` = `C3 A0`) are ordinary. Header *values* are trimmed of spaces and tabs only.
+* Percent-escape validation of the request path and then the query runs **before** routing: an invalid escape is 400 even when no route would match.
+* `increment` is an `int`: two's-complement int64 wraparound like all lmcode ints.
+* `onHandlerError` receives the entry's function name and the VM error message.
+
 ## Route templates
 
 `rest_route(METHOD, PATH, ANNOTATION)`:
