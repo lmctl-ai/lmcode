@@ -45,6 +45,7 @@ JavaScript example exercises BigInt, byte strings and the terminal result envelo
 | [spec/schema.md](spec/schema.md) | Host schema format: types, functions, context, enums, conversions, operators, interfaces, the SHA-256 hash binding |
 | [spec/bytecode.md](spec/bytecode.md) | DSLB v6 layout section by section, opcode table with widths and stack effects, entries section, verifier rules, loader errors |
 | [spec/std.md](spec/std.md) + [spec/std-signatures.md](spec/std-signatures.md) | The standard catalog: ownership, byte-pinned locks, version history, and the generated 206-signature mainline list (181 in release 0.2.444) |
+| [spec/std-rest.md](spec/std-rest.md) | The opt-in `rest` std module: `rest_route`/`rest_listen`, `RestExchange`, annotation-bound `RestHandler` entries, the HTTP subset, and the shared [conformance suite](tests/rest-suite/README.md) (37 scenarios) |
 | [spec/host-protocol.md](spec/host-protocol.md) | Host CLI flags, result/diagnostic records, exit codes, the adopted `LMCODE_RETURN` frame and legacy host behavior |
 | [spec/conformance.md](spec/conformance.md) | The conformance corpus and sample-suite: `.expect` protocols, vector counts, how to run them |
 | [tests/html-doc-conformance/README.md](tests/html-doc-conformance/README.md) | Cross-host html-doc@1/css-doc@1 corpus, pinned release baseline, and real/dry run instructions |

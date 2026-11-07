@@ -92,6 +92,8 @@ helpers). The groups below describe the current catalog:
 | containers | `Int/Float/Str` × `Stack`, `Queue`, `PQ` (min priority first, insertion-order ties), plus constructors | 69 |
 | return | `lmcode_return_null`, `lmcode_return_set`, `lmcode_return_put`, and `lmcode_return_put_null` overloads | 24 |
 
+The `rest` server functions are **not** in the catalog either: they form the opt-in module
+[`lmcode_std_rest_v1`](std-rest.md) (a listener is a network capability and must not be implicit).
 Testing helpers (`print`, `assert_close`) are **not** part of the catalog: they stay explicit host
 declarations (lmcode-std R02), which is why the conformance and sample hosts register them
 themselves.

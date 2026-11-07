@@ -64,6 +64,8 @@ jobs:
           node-version: 24
       - name: Install selected published compiler privately
         run: bash scripts/ci/install-compiler.sh
+      - name: REST suite integrity (schema, bytecode binding, scenarios, reproducible compile)
+        run: python3 tests/rest-suite/check.py --rebuild
       - name: Build the documented reference host
         run: make -C scripts/ci/work/sample all
       - name: Verify compiler, suite and documentation examples
