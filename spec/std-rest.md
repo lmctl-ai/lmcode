@@ -1,52 +1,45 @@
-# lmcode std module `rest` — a REST server over stdio
+# lmcode std module `rest` — REST endpoints and stateless CLI over stdio
 
-Status: **new, opt-in module** `lmcode_std_rest_v1` (not part of the default `lmcode_std_v3`
-catalog, whose 206-signature pin is unchanged). Canonical declarations:
-[`std/rest/lmcode-rest.schema.json`](../std/rest/lmcode-rest.schema.json) (18 signatures + one
-interface). Shared conformance suite: [`tests/rest-suite/`](../tests/rest-suite/README.md).
+Status: **part of the default `lmcode_std_v3` catalog** (226 signatures + 10 standard interfaces).
+Canonical fragment declarations: [`std/rest/lmcode-rest.schema.json`](../std/rest/lmcode-rest.schema.json) (20 signatures + 10 interfaces). Shared conformance suite: [`tests/rest-suite/`](../tests/rest-suite/README.md).
 
-A program declares routes, binds them to **annotated SAM entries** (the `@NAME fn ... implements
-RestHandler` rule mechanism of [language.md §8](language.md)), and the host then serves **HTTP/1.1 messages over its standard streams**: requests are read from stdin, responses are
-written to stdout, and every request is answered by running the bound entry. **There is no network listener** — no
-socket, no port; the process is the server, which makes it embeddable behind any pipe, test harness or agent tool. The module follows the registration style of
-[lmmock](https://github.com/lmctl-ai/lmmock) (`route(method, path, annotation)`), generalised from a Go-only
-host to a standard module every runtime can provide.
+A program declares routes either via **path-annotated std interface entries** (`@"/users/:id" fn ... implements RestGet`, `@"POST /users" fn ... implements RestHandler`, `@"status" fn ... implements CliCommand`, `@"--verbose" fn ... implements CliOption`) or via `rest_route(method, path, annotation)`, and the runtime either serves **HTTP/1.1 messages over its standard streams** (`rest_serve()`) or dispatches a single **stateless CLI command** (`rest_cli(args)`).
 
 ```text
 program = _lmcode_ schema="host.schema.json";
 
-@user
-fn get_user(x: RestExchange) -> void implements RestHandler {
+@"/users/:id"
+fn get_user(x: RestExchange) -> void implements RestGet {
   x.json("{\"id\":\"" + x.param("id") + "\"}");
 }
 
-@create
-fn create_user(x: RestExchange) -> void implements RestHandler {
+@"/users"
+fn create_user(x: RestExchange) -> void implements RestPost {
   x.set("last", x.body());
   x.status(201);
 }
 
-rest_route("GET",  "/users/{id}", "user");
-rest_route("POST", "/users",      "create");
+rest_config("session", "global");
 rest_serve();
 end _lmcode_
 ```
 
-## Why a separate, opt-in module
-
-The default catalog is merged into **every** `_lmcode_` block. Taking over stdin/stdout is a host-level capability, so
-it is not in that implicit surface: a lint rule or a data transform cannot hijack the process streams by accident. A host opts in by
-declaring the module in its schema (merge `std/rest/lmcode-rest.schema.json` into the host schema; the std
-merge deduplicates identical `Json`-free declarations) **and** registering it in the runtime
-(`registerRest` / `register_rest` / …). A runtime that does not register the module refuses programs that
-import it with the ordinary `LOAD_UNBOUND`. No compiler change and no bytecode revision is needed: routes
-bind through the existing identifier annotation, and the published 0.2.456 compiler compiles the suite.
-
-## Declarations
+## Standard Interfaces & Declarations
 
 ```text
+interface RestGet(exchange: RestExchange) -> void
+interface RestPost(exchange: RestExchange) -> void
+interface RestPut(exchange: RestExchange) -> void
+interface RestDelete(exchange: RestExchange) -> void
+interface RestPatch(exchange: RestExchange) -> void
+interface RestHead(exchange: RestExchange) -> void
+interface RestOptions(exchange: RestExchange) -> void
 interface RestHandler(exchange: RestExchange) -> void
+interface CliCommand(exchange: RestExchange) -> void
+interface CliOption(exchange: RestExchange) -> void
 
+fn rest_cli(StrList) -> string                     # stateless single-command CLI execution returning response body
+fn rest_config(string, string) -> void             # configure server/session key-value settings before serving
 fn rest_route(string, string, string) -> void      # method, path template, annotation
 fn rest_serve() -> void                            # after the body ends, serve stdin -> stdout until EOF or rest_stop()
 fn rest_stop() -> void                             # end serving after the current response is written
