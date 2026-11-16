@@ -6,7 +6,7 @@ self-hosted machine or globally installed lmctl is required. CI downloads
 
 The compiler selector is the manual workflow input compiler_version, then the
 repository variable LMCODE_COMPILER_VERSION, then scripts/ci/compiler-version
-(currently 0.2.456, including the required dry invocation marker). To test a newer release or tag,
+(currently 0.2.482, including the required dry invocation marker). To test a newer release or tag,
 run the ci workflow manually and set compiler_version, for example staging.
 The historical 0.2.450 producer omits the mandatory dry marker and cannot be
 paired with current hosts. The selected baseline must support that contract.

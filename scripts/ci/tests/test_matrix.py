@@ -27,7 +27,7 @@ class Matrix(unittest.TestCase):
             repos.append(repo)
             return ('b' if repo == 'lmcode-js' else 'a') * 40
         output = io.StringIO()
-        with patch.object(matrix, 'revision', side_effect=ref), patch.object(matrix, 'compiler_version', return_value='0.2.456'), patch.dict(os.environ, GITHUB_OUTPUT=''), contextlib.redirect_stdout(output):
+        with patch.object(matrix, 'revision', side_effect=ref), patch.object(matrix, 'compiler_version', return_value='0.2.482'), patch.dict(os.environ, GITHUB_OUTPUT=''), contextlib.redirect_stdout(output):
             matrix.main()
         rows = json.loads(next(line[7:] for line in output.getvalue().splitlines() if line.startswith('matrix=')))['include']
         js = [row for row in rows if row['language'] == 'js']
