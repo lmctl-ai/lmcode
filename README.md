@@ -3,6 +3,8 @@
 [![Cross-runtime conformance](https://github.com/lmctl-ai/lmcode/actions/workflows/cross-runtime.yml/badge.svg)](https://github.com/lmctl-ai/lmcode/actions/workflows/cross-runtime.yml)
 [![JavaScript runtime CI](https://github.com/lmctl-ai/lmcode-js/actions/workflows/ci.yml/badge.svg)](https://github.com/lmctl-ai/lmcode-js/actions/workflows/ci.yml)
 
+Documentation: [Quick reference](https://www.lmctl.com/tools/lmcode/) | [LLM skill](https://www.lmctl.com/tools/lmcode/skill.html) | [Guide](https://www.lmctl.com/tools/lmcode/guide.html) | [Reference](https://www.lmctl.com/tools/lmcode/reference.html)
+
 Syntax tooling: [tree-sitter-lmcode status, pins and integration boundaries](spec/tree-sitter-lmcode.md).
 
 lmcode is a small, strongly typed language that compiles to **lmcode bytecode (DSLB v6)** and runs
